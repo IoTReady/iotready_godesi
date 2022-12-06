@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include iotready_godesi *.css
+recursive-include iotready_godesi *.csv
+recursive-include iotready_godesi *.html
+recursive-include iotready_godesi *.ico
+recursive-include iotready_godesi *.js
+recursive-include iotready_godesi *.json
+recursive-include iotready_godesi *.md
+recursive-include iotready_godesi *.png
+recursive-include iotready_godesi *.py
+recursive-include iotready_godesi *.svg
+recursive-include iotready_godesi *.txt
+recursive-exclude iotready_godesi *.pyc
