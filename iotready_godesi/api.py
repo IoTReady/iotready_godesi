@@ -19,7 +19,8 @@ def maybe_create_batch(batch_id, warehouse_id):
 @frappe.whitelist()
 def generate_label(warehouse_id: str, crate_id: str, item_code: str, quantity: int):
     today = datetime.now().strftime("%d%m%y")
-    now = datetime.now().strftime("%H:%M %p")
+    #now = datetime.now().strftime("%H:%M %p")
+    now = (datetime.now()+timedelta(hours=5, minutes=30)).strftime("%H:%M %p")
     if warehouse_id == "Sira Unit 1 - GDMPL":
         prefix = "S1"
     elif warehouse_id == "Sira Unit 2 - GDMPL":
