@@ -6,6 +6,7 @@ app_publisher = "IoTReady"
 app_description = "IoTReady Custom App For Go Desi"
 app_email = "hello@iotready.co"
 app_license = "UNLICENSED"
+required_apps = ["erpnext"]
 
 # Includes in <head>
 # ------------------
