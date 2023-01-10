@@ -42,7 +42,7 @@ app_license = "UNLICENSED"
 
 # website user home page (by Role)
 # role_home_page = {
-#	"Role": "home_page"
+# 	"Role": "home_page"
 # }
 
 # Generators
@@ -56,8 +56,8 @@ app_license = "UNLICENSED"
 
 # add methods and filters to jinja environment
 # jinja = {
-#	"methods": "iotready_godesi.utils.jinja_methods",
-#	"filters": "iotready_godesi.utils.jinja_filters"
+# 	"methods": "iotready_godesi.utils.jinja_methods",
+# 	"filters": "iotready_godesi.utils.jinja_filters"
 # }
 
 # Installation
@@ -83,11 +83,11 @@ app_license = "UNLICENSED"
 # Permissions evaluated in scripted ways
 
 # permission_query_conditions = {
-#	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
+# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
 # }
 #
 # has_permission = {
-#	"Event": "frappe.desk.doctype.event.event.has_permission",
+# 	"Event": "frappe.desk.doctype.event.event.has_permission",
 # }
 
 # DocType Class
@@ -95,40 +95,36 @@ app_license = "UNLICENSED"
 # Override standard doctype classes
 
 # override_doctype_class = {
-#	"ToDo": "custom_app.overrides.CustomToDo"
+# 	"ToDo": "custom_app.overrides.CustomToDo"
 # }
 
 # Document Events
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-#	"*": {
-#		"on_update": "method",
-#		"on_cancel": "method",
-#		"on_trash": "method"
-#	}
-# }
+doc_events = {
+    "Warehouse": {"before_save": "iotready_godesi.doc_hooks.warehouse_before_save"},
+}
 
 # Scheduled Tasks
 # ---------------
 
 # scheduler_events = {
-#	"all": [
-#		"iotready_godesi.tasks.all"
-#	],
-#	"daily": [
-#		"iotready_godesi.tasks.daily"
-#	],
-#	"hourly": [
-#		"iotready_godesi.tasks.hourly"
-#	],
-#	"weekly": [
-#		"iotready_godesi.tasks.weekly"
-#	],
-#	"monthly": [
-#		"iotready_godesi.tasks.monthly"
-#	],
+# 	"all": [
+# 		"iotready_godesi.tasks.all"
+# 	],
+# 	"daily": [
+# 		"iotready_godesi.tasks.daily"
+# 	],
+# 	"hourly": [
+# 		"iotready_godesi.tasks.hourly"
+# 	],
+# 	"weekly": [
+# 		"iotready_godesi.tasks.weekly"
+# 	],
+# 	"monthly": [
+# 		"iotready_godesi.tasks.monthly"
+# 	],
 # }
 
 # Testing
@@ -140,14 +136,14 @@ app_license = "UNLICENSED"
 # ------------------------------
 #
 # override_whitelisted_methods = {
-#	"frappe.desk.doctype.event.event.get_events": "iotready_godesi.event.get_events"
+# 	"frappe.desk.doctype.event.event.get_events": "iotready_godesi.event.get_events"
 # }
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps
 # override_doctype_dashboards = {
-#	"Task": "iotready_godesi.task.get_dashboard_data"
+# 	"Task": "iotready_godesi.task.get_dashboard_data"
 # }
 
 # exempt linked doctypes from being automatically cancelled
@@ -159,29 +155,29 @@ app_license = "UNLICENSED"
 # --------------------
 
 # user_data_fields = [
-#	{
-#		"doctype": "{doctype_1}",
-#		"filter_by": "{filter_by}",
-#		"redact_fields": ["{field_1}", "{field_2}"],
-#		"partial": 1,
-#	},
-#	{
-#		"doctype": "{doctype_2}",
-#		"filter_by": "{filter_by}",
-#		"partial": 1,
-#	},
-#	{
-#		"doctype": "{doctype_3}",
-#		"strict": False,
-#	},
-#	{
-#		"doctype": "{doctype_4}"
-#	}
+# 	{
+# 		"doctype": "{doctype_1}",
+# 		"filter_by": "{filter_by}",
+# 		"redact_fields": ["{field_1}", "{field_2}"],
+# 		"partial": 1,
+# 	},
+# 	{
+# 		"doctype": "{doctype_2}",
+# 		"filter_by": "{filter_by}",
+# 		"partial": 1,
+# 	},
+# 	{
+# 		"doctype": "{doctype_3}",
+# 		"strict": False,
+# 	},
+# 	{
+# 		"doctype": "{doctype_4}"
+# 	}
 # ]
 
 # Authentication and authorization
 # --------------------------------
 
 # auth_hooks = [
-#	"iotready_godesi.auth.validate"
+# 	"iotready_godesi.auth.validate"
 # ]
