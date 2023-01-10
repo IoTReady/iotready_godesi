@@ -102,6 +102,6 @@ def sku_table_hook(crate_activity_summary_doc):
         "total_price": total_price,
     }
     return frappe.render_template(
-        "templates/includes/sku_table.html",
+        "templates/includes/custom_sku_table.html",
         context,
     )
