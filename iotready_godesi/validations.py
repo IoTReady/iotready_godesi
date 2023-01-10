@@ -212,6 +212,7 @@ def transfer_in_event_hook(crate: dict, activity: str):
     validate_crate_in_use(crate_id)
     all_crates = validate_submitted_transfer_out(crate_id, target_warehouse)
     validate_not_existing_transfer_in(crate_id, target_warehouse)
+    # validate weight vs quantity here
     return {
         "crate": crate,
         "all_crates": all_crates,
