@@ -79,3 +79,29 @@ def transfer_out_submit_hook(crate_activity_summary_doc):
 
 def transfer_in_submit_hook(crate_activity_summary_doc):
     pass
+
+
+def sku_table_hook(crate_activity_summary_doc):
+    items = json.loads(crate_activity_summary_doc.items)
+    activity = crate_activity_summary_doc.activity
+    total_number_of_crates = sum([row["number_of_crates"] for row in items])
+    total_weight = sum([row["crate_weight"] for row in items])
+    price_list = frappe.db.get_single_value("Go Desi Settings", "price_list")
+    for row in items:
+        row["price"] = frappe.get_all(
+            "Item Price",
+            filters={"item_code": row["item_code"], "price_list": price_list},
+            fields=["price_list_rate"],
+        )[0]["price_list_rate"]
+    total_price = sum([row["price"] for row in items])
+    context = {
+        "items": items,
+        "activity": activity,
+        "total_number_of_crates": total_number_of_crates,
+        "total_weight": total_weight,
+        "total_price": total_price,
+    }
+    return frappe.render_template(
+        "templates/includes/sku_table.html",
+        context,
+    )

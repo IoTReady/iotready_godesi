@@ -1,0 +1,48 @@
+<table class="full-width">
+  <tr>
+    <th>No.</th>
+    <th>SKU</th>
+    <th>Description</th>
+    <th style="text-align: right">GRN Quantity</th>
+    <th style="text-align: right">Carton Weight</th>
+    <th style="text-align: right">Number Of Crates</th>
+    <th style="text-align: right">Price</th>
+  </tr>
+  {% for row in items %}
+  <tr>
+    <td>{{loop.index}}</td>
+    <td>{{row['item_code']}}</td>
+    <td>{{row['item_name']}}</td>
+    {% if row['stock_uom'] | lower in ["nos", "pcs"] %}
+    <td style="text-align: right">{{row['qty'] | int }} Pcs</td>
+    {% else %}
+    <td style="text-align: right">
+      {{row['qty'] }} Kg
+    </td>
+    {% endif %}
+    <td style="text-align: right">{{row['crate_weight'] }} Kg</td>
+    <td style="text-align: right">{{row['number_of_crates']}}</td>
+    <td style="text-align: right">Rs. {{row['price']}}</td>
+  </tr>
+  {% endfor %}
+  <tr>
+    <td colspan="4"></td>
+    <td style="text-align: right"><b>Total Carton Weight: {{total_weight}} Kg</b></td>
+    <td style="text-align: right"><b>Total Number Of Crates: {{total_number_of_crates}}</b></td>
+    <td style="text-align: right"><b>Total Price: Rs. {{total_price}}</b></td>
+
+  </tr>
+</table>
+
+<style>
+  table,
+  th,
+  td {
+    border: 1px solid;
+    padding: 0.5rem;
+  }
+
+  .full-width {
+    width: 100%;
+  }
+</style>
