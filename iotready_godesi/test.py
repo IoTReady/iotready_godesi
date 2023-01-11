@@ -15,7 +15,7 @@ headers = {
     "Accept": "application/json",
 }
 
-batch_prefix = "GP22-IO-TR-C"
+batch_prefix = "GP22-IO-TR-D"
 
 session = requests.Session()
 
