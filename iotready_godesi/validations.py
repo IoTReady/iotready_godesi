@@ -96,6 +96,38 @@ def validate_procurement_quantity(quantity, crate_weight, item_code):
         raise Exception("Actual weight above expected weight.")
 
 
+def validate_transfer_in_quantity(crate):
+    crate_id = crate["crate_id"]
+    crate_weight = crate["weight"]
+    crate_doc = frappe.get_doc("Crate", crate_id)
+    item_code = crate_doc.item_code
+    item = frappe.get_doc("Item", item_code)
+    # Two ways to validate:
+    # 1. Compare to last_known_weight (most likely from Transfer Out)
+    # last_known_weight = crate_doc.last_known_weight
+    # Maybe add a tolerance as the weight is unlikely to be exactly the same as last_known_weight
+    # tolerance = min(item.lower_tolerance, item.upper_tolerance)
+    # lower_limit = last_known_weight * (1 - tolerance / 100)
+    # upper_limit = last_known_weight * (1 + tolerance / 100)
+    # if crate_weight < lower_limit:
+    #     raise Exception("Actual weight below expected weight.")
+    # elif crate_weight > upper_limit:
+    #     raise Exception("Actual weight above expected weight.")
+
+    # 2. Compare to expected weight as determined from quantity
+    # This is the same as the procurement validation
+    quantity = crate_doc.last_known_grn_quantity
+    expected_weight = (
+        item.secondary_box_weight * quantity + item.tertiary_packaging_weight
+    )
+    lower_limit = expected_weight * (1 - item.lower_tolerance / 100)
+    upper_limit = expected_weight * (1 + item.upper_tolerance / 100)
+    if crate_weight < lower_limit:
+        raise Exception("Actual weight below expected weight.")
+    elif crate_weight > upper_limit:
+        raise Exception("Actual weight above expected weight.")
+
+
 def validate_submitted_transfer_out(crate_id, target_warehouse):
     filters = {
         "crate_id": crate_id,
@@ -212,7 +244,10 @@ def transfer_in_event_hook(crate: dict, activity: str):
     validate_crate_in_use(crate_id)
     all_crates = validate_submitted_transfer_out(crate_id, target_warehouse)
     validate_not_existing_transfer_in(crate_id, target_warehouse)
-    # validate weight vs quantity here
+    if crate.get("weight"):
+        # carton was weighed
+        # validate weight vs quantity here
+        validate_transfer_in_quantity(crate)
     return {
         "crate": crate,
         "all_crates": all_crates,
