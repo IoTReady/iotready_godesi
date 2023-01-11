@@ -33,6 +33,7 @@ def create_consumption_stock_entry(items, warehouse):
         doc.bom_no = frappe.get_all("BOM", filters={"item": item_code}, limit=1)[0][
             "name"
         ]
+        doc.from_bom = True
         doc.use_multi_level_bom = True
         doc.fg_completed_qty = quantity
         doc.from_warehouse = warehouse
