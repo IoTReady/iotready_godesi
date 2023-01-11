@@ -104,28 +104,28 @@ def validate_transfer_in_quantity(crate):
     item = frappe.get_doc("Item", item_code)
     # Two ways to validate:
     # 1. Compare to last_known_weight (most likely from Transfer Out)
-    # last_known_weight = crate_doc.last_known_weight
-    # Maybe add a tolerance as the weight is unlikely to be exactly the same as last_known_weight
-    # tolerance = min(item.lower_tolerance, item.upper_tolerance)
-    # lower_limit = last_known_weight * (1 - tolerance / 100)
-    # upper_limit = last_known_weight * (1 + tolerance / 100)
-    # if crate_weight < lower_limit:
-    #     raise Exception("Actual weight below expected weight.")
-    # elif crate_weight > upper_limit:
-    #     raise Exception("Actual weight above expected weight.")
-
-    # 2. Compare to expected weight as determined from quantity
-    # This is the same as the procurement validation
-    quantity = crate_doc.last_known_grn_quantity
-    expected_weight = (
-        item.secondary_box_weight * quantity + item.tertiary_packaging_weight
-    )
-    lower_limit = expected_weight * (1 - item.lower_tolerance / 100)
-    upper_limit = expected_weight * (1 + item.upper_tolerance / 100)
+    last_known_weight = crate_doc.last_known_weight
+    #Maybe add a tolerance as the weight is unlikely to be exactly the same as last_known_weight
+    tolerance = min(item.lower_tolerance, item.upper_tolerance)
+    lower_limit = last_known_weight * (1 - tolerance / 100)
+    upper_limit = last_known_weight * (1 + tolerance / 100)
     if crate_weight < lower_limit:
         raise Exception("Actual weight below expected weight.")
     elif crate_weight > upper_limit:
         raise Exception("Actual weight above expected weight.")
+
+    # 2. Compare to expected weight as determined from quantity
+    # This is the same as the procurement validation
+    #quantity = crate_doc.last_known_grn_quantity
+    #expected_weight = (
+    #    item.secondary_box_weight * quantity + item.tertiary_packaging_weight
+    #)
+    #lower_limit = expected_weight * (1 - item.lower_tolerance / 100)
+    #upper_limit = expected_weight * (1 + item.upper_tolerance / 100)
+    #if crate_weight < lower_limit:
+    #    raise Exception("Actual weight below expected weight.")
+    #elif crate_weight > upper_limit:
+    #    raise Exception("Actual weight above expected weight.")
 
 
 def validate_submitted_transfer_out(crate_id, target_warehouse):
