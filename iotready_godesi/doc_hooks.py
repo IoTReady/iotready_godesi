@@ -30,9 +30,14 @@ def create_consumption_stock_entry(items, warehouse):
         quantity = row["qty"]
         doc = frappe.new_doc("Stock Entry")
         doc.stock_entry_type = "Material Consumption for Manufacture"
-        doc.bom_no = frappe.get_all("BOM", filters={"item": item_code}, limit=1)[0][
-            "name"
-        ]
+        # doc.bom_no = frappe.get_all("BOM", filters={"item": item_code}, limit=1)[0][
+        #     "name"
+        # ]
+        bom = frappe.get_all("BOM", filters={"item": item_code}, limit=1)
+        if len(bom)==0:
+            frappe.throw(f"Item {item_code} does not have a BOM")
+        else:
+            doc.bom_no = bom[0]["name"]
         doc.from_bom = True
         doc.use_multi_level_bom = True
         doc.fg_completed_qty = quantity
