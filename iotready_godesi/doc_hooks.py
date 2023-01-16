@@ -36,6 +36,7 @@ def create_consumption_stock_entry(items, warehouse):
         bom = frappe.get_all("BOM", filters={"item": item_code}, limit=1)
         if len(bom)==0:
             frappe.throw(f"Item {item_code} does not have a BOM")
+            return False
         else:
             doc.bom_no = bom[0]["name"]
         doc.from_bom = True
