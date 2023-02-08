@@ -30,11 +30,10 @@ def create_consumption_stock_entry(items, warehouse):
         quantity = row["qty"]
         doc = frappe.new_doc("Stock Entry")
         doc.stock_entry_type = "Material Consumption for Manufacture"
-        # doc.bom_no = frappe.get_all("BOM", filters={"item": item_code}, limit=1)[0][
-        #     "name"
-        # ]
-        bom = frappe.get_all("BOM", filters={"item": item_code}, limit=1)
-        if len(bom)==0:
+        bom = frappe.get_all(
+            "BOM", filters={"item": item_code, "is_default": 1}, limit=1
+        )
+        if len(bom) == 0:
             frappe.throw(f"Item {item_code} does not have a BOM")
         else:
             doc.bom_no = bom[0]["name"]
@@ -48,27 +47,22 @@ def create_consumption_stock_entry(items, warehouse):
 
 
 def create_manufacture_stock_entry(items, warehouse):
-    item_code = items[0]["item_code"]
-    args = {
-        "item_code": item_code,
-        "qty": 1,
-        "from_warehouse": warehouse,
-        "purpose": "Manufacture",
-        "do_not_submit": True,
-        "do_not_save": True,
-    }
-    doc = make_stock_entry(**args)
-    doc.items = []
     for row in items:
-        item = {
-            "item_code": row["item_code"],
-            "s_warehouse": warehouse,
+        item_code = row["item_code"]
+        args = {
+            "item_code": item_code,
             "qty": row["qty"],
+            "to_warehouse": warehouse,
+            "purpose": "Manufacture",
             "is_finished_item": 1,
             "allow_zero_valuation_rate": 1,
+            "do_not_submit": True,
+            "do_not_save": True,
         }
-        doc.append("items", item)
-    doc.save()
+        doc = make_stock_entry(**args)
+        doc.items[0].is_finished_item = 1
+        doc.items[0].allow_zero_valuation_rate = 1
+        doc.save()
     return True
 
 
