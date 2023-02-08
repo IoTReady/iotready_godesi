@@ -65,7 +65,7 @@ def get_configuration():
             "item_code",
             "item_name",
             "stock_uom",
-            "uom_quantity",
+            # "uom_quantity",
             # "standard_crate_quantity",
             # "moisture_loss",
             # "crate_lower_tolerance",
