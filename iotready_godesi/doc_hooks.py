@@ -66,6 +66,33 @@ def create_manufacture_stock_entry(items, warehouse):
     return True
 
 
+def create_transfer_stock_entry(items, source_warehouse, target_warehouse):
+    item_code = items[0]["item_code"]
+    args = {
+        "item_code": item_code,
+        "qty": 1,
+        "from_warehouse": source_warehouse,
+        "to_warehouse": target_warehouse,
+        "purpose": "Material Transfer",
+        "do_not_submit": True,
+        "do_not_save": True,
+    }
+    doc = make_stock_entry(**args)
+    doc.items = []
+    for row in items:
+        item = {
+            "item_code": row["item_code"],
+            "s_warehouse": source_warehouse,
+            "t_warehouse": target_warehouse,
+            "qty": row["qty"],
+            "allow_zero_valuation_rate": 1,
+        }
+        doc.append("items", item)
+    doc.save()
+    frappe.db.commit()
+    return True
+
+
 def procurement_submit_hook(crate_activity_summary_doc):
     warehouse = crate_activity_summary_doc.source_warehouse
     items = json.loads(crate_activity_summary_doc.items)
@@ -74,11 +101,34 @@ def procurement_submit_hook(crate_activity_summary_doc):
 
 
 def transfer_out_submit_hook(crate_activity_summary_doc):
-    pass
+    items = json.loads(crate_activity_summary_doc.items)
+    source_warehouse = crate_activity_summary_doc.source_warehouse
+    transit_warehouse = frappe.get_value(
+        "Warehouse", source_warehouse, "default_in_transit_warehouse"
+    )
+    if not transit_warehouse:
+        frappe.throw(
+            f"Please configure Default In-Transit Warehouse for {source_warehouse}"
+        )
+    create_transfer_stock_entry(
+        items, source_warehouse, target_warehouse=transit_warehouse
+    )
 
 
 def transfer_in_submit_hook(crate_activity_summary_doc):
-    pass
+    items = json.loads(crate_activity_summary_doc.items)
+    source_warehouse = crate_activity_summary_doc.source_warehouse
+    transit_warehouse = frappe.get_value(
+        "Warehouse", source_warehouse, "default_in_transit_warehouse"
+    )
+    if not transit_warehouse:
+        frappe.throw(
+            f"Please configure Default In-Transit Warehouse for {source_warehouse}"
+        )
+    target_warehouse = crate_activity_summary_doc.target_warehouse
+    create_transfer_stock_entry(
+        items, source_warehouse=transit_warehouse, target_warehouse=target_warehouse
+    )
 
 
 def sku_table_hook(crate_activity_summary_doc):
