@@ -20,11 +20,8 @@ def maybe_create_batch(batch_id, warehouse_id):
 def generate_label(warehouse_id: str, crate_id: str, item_code: str, quantity: int):
     today = datetime.now().strftime("%d%m%y")
     now = datetime.now().strftime("%H:%M %p")
-    if warehouse_id == "Sira Unit 1 - GDMPL":
-        prefix = "S1"
-    elif warehouse_id == "Sira Unit 2 - GDMPL":
-        prefix = "S2"
-    else:
+    prefix = frappe.db.get_value("Warehouse", warehouse_id, "batch_prefix")
+    if not prefix:
         prefix = warehouse_id.split("-")[0].replace(" ", "")
     batch_id = f"{prefix}{today}"
     maybe_create_batch(batch_id, warehouse_id)
