@@ -23,7 +23,7 @@ def generate_label(warehouse_id: str, crate_id: str, item_code: str, quantity: i
     if warehouse_id == "Sira Unit 1 - GDMPL":
         prefix = "S1"
     elif warehouse_id == "Sira Unit 2 - GDMPL":
-        prefix = "S1"
+        prefix = "S2"
     else:
         prefix = warehouse_id.split("-")[0].replace(" ", "")
     batch_id = f"{prefix}{today}"
@@ -32,8 +32,8 @@ def generate_label(warehouse_id: str, crate_id: str, item_code: str, quantity: i
     item_name = frappe.db.get_value("Item", item_code, "item_name")
     label = (
         template.replace("{qr_code}", crate_id)
-        .replace("{description1}", item_name[:25])
-        .replace("{description2}", item_name[25:50])
+        .replace("{description1}", item_name[:15])
+        .replace("{description2}", item_name[15:30])
         .replace("{quantity}", f"{quantity} pcs")
         .replace("{batch_id}", batch_id)
         .replace("{time}", now)
