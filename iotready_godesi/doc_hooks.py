@@ -158,3 +158,7 @@ def sku_table_hook(crate_activity_summary_doc):
         "templates/includes/custom_sku_table.html",
         context,
     )
+
+
+def customer_autoname(doc):
+    print("inside customer_autoname", doc)

@@ -95,9 +95,9 @@ required_apps = ["erpnext"]
 # ---------------
 # Override standard doctype classes
 
-# override_doctype_class = {
-# 	"ToDo": "custom_app.overrides.CustomToDo"
-# }
+override_doctype_class = {
+    "Customer": "iotready_godesi.overrides.customer.CustomCustomer"
+}
 
 # Document Events
 # ---------------
@@ -105,6 +105,7 @@ required_apps = ["erpnext"]
 
 doc_events = {
     "Warehouse": {"before_save": "iotready_godesi.doc_hooks.warehouse_before_save"},
+    "Customer": {"autoname": "iotready_godesi.doc_hooks.customer_autoname"},
 }
 
 # Scheduled Tasks
