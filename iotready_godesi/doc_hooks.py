@@ -138,14 +138,18 @@ def sku_table_hook(crate_activity_summary_doc):
     total_weight = sum([row["crate_weight"] for row in items])
     price_list = frappe.db.get_single_value("Go Desi Settings", "price_list")
     for row in items:
-        row["price"] = (
-            frappe.get_all(
+        price_list_rates = frappe.get_all(
                 "Item Price",
                 filters={"item_code": row["item_code"], "price_list": price_list},
                 fields=["price_list_rate"],
-            )[0]["price_list_rate"]
-            * row["number_of_crates"]
-        )
+            )
+        if len(price_list_rates) > 0:
+            row["price"] = (
+                [0]["price_list_rate"]
+                * row["number_of_crates"]
+            )
+        else:
+            row["price"] = 0
     total_price = sum([row["price"] for row in items])
     context = {
         "items": items,
