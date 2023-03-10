@@ -194,6 +194,9 @@ def procurement_event_hook(crate, activity):
     crate["crate_id"] = crate["crate_id"].strip()
     crate_id = crate["crate_id"]
     item_code = crate["item_code"]
+    stock_uom = frappe.get_value("Item", item_code, "stock_uom")
+    if stock_uom.lower() not in ["nos", "pcs"]:
+        crate["quantity"] = crate["weight"]
     quantity = crate["quantity"]
     supplier = crate["supplier"]
     crate_weight = crate["weight"]
@@ -208,7 +211,7 @@ def procurement_event_hook(crate, activity):
         quantity=quantity,
         weight=crate_weight
     )
-    return {"label": label}
+    return crate, {"label": label}
 
 
 def transfer_out_event_hook(crate: dict, activity: str):
