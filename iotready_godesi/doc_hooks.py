@@ -162,3 +162,19 @@ def sku_table_hook(crate_activity_summary_doc):
         "templates/includes/custom_sku_table.html",
         context,
     )
+
+def get_crate_table(crate_activity_summary_doc):
+    crates = json.loads(crate_activity_summary_doc.crates)
+    activity = crate_activity_summary_doc.activity
+    is_editable = False
+    total_crate_weight = sum([row["crate_weight"] for row in crates])
+    context = {
+        "crates": crates,
+        "is_editable": is_editable,
+        "activity": activity,
+        "total_crate_weight": total_crate_weight,
+    }
+    return frappe.render_template(
+        "templates/includes/custom_crate_table.html",
+        context,
+    )
