@@ -62,6 +62,7 @@ def get_configuration():
             "item_code",
             "item_name",
             "stock_uom",
+            "tertiary_package_quantity"
             # "uom_quantity",
             # "standard_crate_quantity",
             # "moisture_loss",
@@ -71,6 +72,7 @@ def get_configuration():
         filters={"disabled": 0, "name": ["in", item_refs]},
     )
     for item in items:
+        item["standard_crate_quantity"] = item["tertiary_package_quantity"]
         if item["stock_uom"].lower() in ["nos", "pcs"]:
             item["stock_uom"] = "Nos"
     suppliers = [
