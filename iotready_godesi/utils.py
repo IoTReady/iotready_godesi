@@ -17,7 +17,7 @@ def maybe_create_batch(batch_id, warehouse_id):
 
 
 @frappe.whitelist()
-def generate_label(warehouse_id: str, crate_id: str, item_code: str, quantity: int):
+def generate_label(warehouse_id: str, crate_id: str, item_code: str, quantity: int, weight: float):
     today = datetime.now().strftime("%d%m%y")
     now = datetime.now().strftime("%H:%M %p")
     prefix = frappe.db.get_value("Warehouse", warehouse_id, "batch_prefix")
@@ -32,6 +32,7 @@ def generate_label(warehouse_id: str, crate_id: str, item_code: str, quantity: i
         .replace("{description1}", item_name[:15])
         .replace("{description2}", item_name[15:30])
         .replace("{quantity}", f"{quantity} pcs")
+        .replace("{weight}", f"{weight} KG")
         .replace("{batch_id}", batch_id)
         .replace("{time}", now)
     )

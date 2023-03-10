@@ -206,6 +206,7 @@ def procurement_event_hook(crate, activity):
         crate_id=crate_id,
         item_code=item_code,
         quantity=quantity,
+        weight=crate_weight
     )
     return {"label": label}
 
