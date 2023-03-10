@@ -163,7 +163,7 @@ def sku_table_hook(crate_activity_summary_doc):
         context,
     )
 
-def get_crate_table(crate_activity_summary_doc):
+def crate_table_hook(crate_activity_summary_doc):
     crates = json.loads(crate_activity_summary_doc.crates)
     activity = crate_activity_summary_doc.activity
     is_editable = False
