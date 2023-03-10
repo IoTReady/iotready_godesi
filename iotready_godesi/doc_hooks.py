@@ -145,8 +145,8 @@ def sku_table_hook(crate_activity_summary_doc):
             )
         if len(price_list_rates) > 0:
             row["price"] = (
-                [0]["price_list_rate"]
-                * row["number_of_crates"]
+                price_list_rates[0]["price_list_rate"]
+                * row["qty"]
             )
         else:
             row["price"] = 0
