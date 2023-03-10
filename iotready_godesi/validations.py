@@ -234,7 +234,7 @@ def transfer_out_event_hook(crate: dict, activity: str):
     # material_request, material_request_item = validate_material_request(
     #     crate, source_warehouse, target_warehouse
     # )
-    return {}
+    return crate, {}
 
 
 def transfer_in_event_hook(crate: dict, activity: str):
@@ -252,7 +252,7 @@ def transfer_in_event_hook(crate: dict, activity: str):
         # carton was weighed
         # validate weight vs quantity here
         validate_transfer_in_quantity(crate)
-    return {
+    return crate, {
         "crate": crate,
         "all_crates": all_crates,
     }
@@ -267,4 +267,4 @@ def delete_event_hook(crate: dict, activity: str):
     validate_crate(crate_id)
     source_warehouse = utils.get_user_warehouse()
     validate_source_warehouse(crate_id, source_warehouse)
-    return {}
+    return crate, {}
