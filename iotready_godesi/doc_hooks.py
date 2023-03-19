@@ -89,6 +89,7 @@ def create_transfer_stock_entry(items, source_warehouse, target_warehouse):
         }
         doc.append("items", item)
     doc.save()
+    doc.submit()
     frappe.db.commit()
     return True
 
