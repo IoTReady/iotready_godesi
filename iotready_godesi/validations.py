@@ -129,17 +129,37 @@ def validate_transfer_in_quantity(crate):
 
 
 def validate_submitted_transfer_out(crate_id, target_warehouse):
+    crate_doc = frappe.get_doc("Crate", crate_id)
     filters = {
         "crate_id": crate_id,
         "target_warehouse": target_warehouse,
         "activity": "Transfer out",
         "status": "Completed",
+        "creation": [">", crate_doc.procurement_timestamp],
     }
     # We use get_all here to ignore get_list permissions and cause an exception
     # if a draft crate activity exists for this crate in another warehouse
-    existing = frappe.db.get_all("Crate Activity", filters=filters, fields=["crate_id"])
+    existing = frappe.db.get_all(
+        "Crate Activity", filters=filters, fields=["reference_id", "creation"]
+    )
     assert len(existing) > 0, "No matching Transfer Out found."
-    return [row["crate_id"] for row in existing]
+    filters = {
+        "target_warehouse": target_warehouse,
+        "activity": "Transfer out",
+        "status": "Completed",
+        "reference_id": existing[0]["reference_id"],
+    }
+    todo = frappe.db.get_all("Crate Activity", filters=filters, fields=["crate_id"])
+    todo = set([row["crate_id"] for row in todo])
+    filters["activity"] = "Transfer In"
+    filters["crate_id"] = ["in", list(todo)]
+    filters["creation"] = [">=", existing[0]["creation"]]
+    # consider both - drafts and completed
+    del filters["status"]
+    del filters["reference_id"]
+    done = frappe.get_all("Crate Activity", filters=filters, fields=["crate_id"])
+    done = set([row["crate_id"] for row in done])
+    return list(todo.difference(done)), len(todo)
 
 
 def validate_not_existing_transfer_in(crate_id, target_warehouse):
@@ -246,7 +266,7 @@ def transfer_in_event_hook(crate: dict, activity: str):
     target_warehouse = utils.get_user_warehouse()
     validate_crate(crate_id)
     validate_crate_in_use(crate_id)
-    all_crates = validate_submitted_transfer_out(crate_id, target_warehouse)
+    all_crates, total_crates = validate_submitted_transfer_out(crate_id, target_warehouse)
     validate_not_existing_transfer_in(crate_id, target_warehouse)
     if crate.get("weight"):
         # carton was weighed
@@ -255,6 +275,7 @@ def transfer_in_event_hook(crate: dict, activity: str):
     return crate, {
         "crate": crate,
         "all_crates": all_crates,
+        "total_crates": total_crates,
     }
 
 

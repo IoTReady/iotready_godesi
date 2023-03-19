@@ -1,11 +1,12 @@
 import json
 import requests
-from joblib import Parallel, delayed
+# from joblib import Parallel, delayed
 
-usr = "cc@iotready.co"
-pwd = "iotready"
-# usr = "tej@iotready.co"
+# usr = "cc@iotready.co"
+# pwd = "iotready"
+usr = "tej@iotready.co"
 # pwd = "godesi2702"
+pwd = "admin"
 
 base_url = "http://localhost:8000"
 # base_url = "https://godesi-dev.frappe.cloud"
@@ -15,7 +16,7 @@ headers = {
     "Accept": "application/json",
 }
 
-batch_prefix = "GP22-IO-TR-D"
+batch_prefix = "GP22-IO-TR-Z"
 
 session = requests.Session()
 
@@ -54,10 +55,11 @@ def procure_crate(crate_id):
         "item_code": "Imli Pop 1",
         "stock_uom": "PCS",
         "quantity": 20,
-        "weight": 25.48,
+        "weight": 21,
         "isFinal": True,
         "supplier": "SIRA 1",
     }
+    print(crate)
     record_events(crate, "Procurement")
 
 
@@ -65,7 +67,7 @@ def transfer_out_crate(crate_id):
     print(crate_id)
     crate = {
         "crate_id": crate_id,
-        "target_warehouse": "Goods In Transit - GD",
+        "target_warehouse": "Finished Goods - IoT",
         "vehicle": "DUMMY",
         "weight": 19.5,
     }
@@ -114,9 +116,9 @@ if __name__ == "__main__":
     # Procure crates
     for crate_id in crates:
         print(crate_id)
-        procure_crate(crate_id)
+        # procure_crate(crate_id)
         # transfer_out_crate(crate_id)
-        # transfer_in_crate(crate_id)
+        transfer_in_crate(crate_id)
         # delete_crate(crate_id)
     # cycle_count_crate(crate_id)
     # identify_crate(crate_id)
