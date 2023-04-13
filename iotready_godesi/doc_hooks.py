@@ -1,5 +1,6 @@
 import frappe
 import json
+import re
 from erpnext.stock.doctype.stock_entry.stock_entry_utils import make_stock_entry
 
 
@@ -131,6 +132,19 @@ def transfer_in_submit_hook(crate_activity_summary_doc):
         items, source_warehouse=transit_warehouse, target_warehouse=target_warehouse
     )
 
+def parse_tax_rate(s):
+    # Use a regular expression to search for a number followed by a percentage sign
+    match = re.search(r'(\d+(\.\d+)?)%', s)
+    
+    # If a match is found, convert the matched number to a decimal and return it
+    if match:
+        tax_rate = float(match.group(1)) / 100
+        return tax_rate
+    
+    # If no match is found, return 0
+    return 0
+    
+
 
 def sku_table_hook(crate_activity_summary_doc):
     items = json.loads(crate_activity_summary_doc.items)
@@ -138,12 +152,17 @@ def sku_table_hook(crate_activity_summary_doc):
     total_number_of_crates = sum([row["number_of_crates"] for row in items])
     total_weight = sum([row["crate_weight"] for row in items])
     price_list = frappe.db.get_single_value("Go Desi Settings", "price_list")
+    
     for row in items:
+        item_doc = frappe.get_doc("Item", row["item_code"])
         price_list_rates = frappe.get_all(
                 "Item Price",
                 filters={"item_code": row["item_code"], "price_list": price_list},
                 fields=["price_list_rate"],
             )
+        
+        row['gst_hsn_code'] = item_doc.get('gst_hsn_code') or ''
+        row['tax_rate'] = parse_tax_rate(item_doc.taxes[0].item_tax_template) if len(item_doc.taxes) > 0 else 0
         if len(price_list_rates) > 0:
             row["price"] = (
                 price_list_rates[0]["price_list_rate"]
@@ -151,13 +170,19 @@ def sku_table_hook(crate_activity_summary_doc):
             )
         else:
             row["price"] = 0
+        row['tax_amount'] = row['price'] * row['tax_rate']
+        row['price_with_tax'] = row['price'] + row['tax_amount']
     total_price = sum([row["price"] for row in items])
+    total_tax_amount = sum([row["tax_amount"] for row in items])
+    total_price_with_tax = total_price + total_tax_amount
     context = {
         "items": items,
         "activity": activity,
         "total_number_of_crates": total_number_of_crates,
         "total_weight": total_weight,
         "total_price": total_price,
+        "total_tax_amount": total_tax_amount,
+        "total_price_with_tax": total_price_with_tax,
     }
     return frappe.render_template(
         "templates/includes/custom_sku_table.html",
