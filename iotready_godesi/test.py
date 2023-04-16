@@ -1,5 +1,6 @@
 import json
 import requests
+
 # from joblib import Parallel, delayed
 
 # usr = "cc@iotready.co"
@@ -89,7 +90,7 @@ def delete_crate(crate_id):
 
 
 def cycle_count_crate(crate_id):
-    crate = {"crate_id": crate_id, "weight": 22}
+    crate = {"crate_id": crate_id, "weight": 19}
     record_events(crate, "Cycle Count")
 
 
@@ -118,9 +119,9 @@ if __name__ == "__main__":
         print(crate_id)
         # procure_crate(crate_id)
         # transfer_out_crate(crate_id)
-        transfer_in_crate(crate_id)
+        # transfer_in_crate(crate_id)
         # delete_crate(crate_id)
-    # cycle_count_crate(crate_id)
+        cycle_count_crate(crate_id)
     # identify_crate(crate_id)
     # split_crate(crate_id)
     # Parallel(n_jobs=8)(delayed(procure_crate)(crate) for crate in crates)

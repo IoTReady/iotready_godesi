@@ -17,7 +17,9 @@ def maybe_create_batch(batch_id, warehouse_id):
 
 
 @frappe.whitelist()
-def generate_label(warehouse_id: str, crate_id: str, item_code: str, quantity: int, weight: float):
+def generate_label(
+    warehouse_id: str, crate_id: str, item_code: str, quantity: int, weight: float
+):
     today = datetime.now().strftime("%d%m%y")
     now = datetime.now().strftime("%H:%M %p")
     prefix = frappe.db.get_value("Warehouse", warehouse_id, "batch_prefix")
@@ -26,6 +28,8 @@ def generate_label(warehouse_id: str, crate_id: str, item_code: str, quantity: i
     batch_id = f"{prefix}{today}"
     maybe_create_batch(batch_id, warehouse_id)
     template = frappe.db.get_value("Warehouse", warehouse_id, "crate_label_template")
+    if not template:
+        frappe.throw("Please configure crate label template for this warehouse.")
     item_name = frappe.db.get_value("Item", item_code, "item_name")
     label = (
         template.replace("{qr_code}", crate_id)
