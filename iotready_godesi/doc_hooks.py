@@ -135,16 +135,21 @@ def procurement_submit_hook(crate_activity_summary_doc):
 def transfer_out_submit_hook(crate_activity_summary_doc):
     items = json.loads(crate_activity_summary_doc.items)
     source_warehouse = crate_activity_summary_doc.source_warehouse
-    transit_warehouse = frappe.get_value(
-        "Warehouse", source_warehouse, "default_in_transit_warehouse"
+    target_warehouse = crate_activity_summary_doc.target_warehouse
+    target_warehouse_type = frappe.get_value(
+        "Warehouse", target_warehouse, "warehouse_type"
     )
-    if not transit_warehouse:
-        frappe.throw(
-            f"Please configure Default In-Transit Warehouse for {source_warehouse}"
+    if target_warehouse_type == "SHG":
+        transfer_to = target_warehouse
+    else:
+        transfer_to = frappe.get_value(
+            "Warehouse", source_warehouse, "default_in_transit_warehouse"
         )
-    create_transfer_stock_entry(
-        items, source_warehouse, target_warehouse=transit_warehouse
-    )
+        if not transfer_to:
+            frappe.throw(
+                f"Please configure Default In-Transit Warehouse for {source_warehouse}"
+            )
+    create_transfer_stock_entry(items, source_warehouse, target_warehouse=transfer_to)
 
 
 def transfer_in_submit_hook(crate_activity_summary_doc):
