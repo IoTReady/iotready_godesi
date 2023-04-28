@@ -95,11 +95,41 @@ def create_transfer_stock_entry(items, source_warehouse, target_warehouse):
     return True
 
 
+def create_shg_work_orders(items, warehouse):
+    pass
+    # for row in items:
+    #     item_code = row["item_code"]
+    #     quantity = row["qty"]
+    #     doc = frappe.new_doc("Stock Entry")
+    #     doc.stock_entry_type = "Material Consumption for Manufacture"
+    #     bom = frappe.get_all(
+    #         "BOM", filters={"item": item_code, "is_default": 1}, limit=1
+    #     )
+    #     if len(bom) == 0:
+    #         frappe.throw(f"Item {item_code} does not have a BOM")
+    #     else:
+    #         doc.bom_no = bom[0]["name"]
+    #     doc.from_bom = True
+    #     doc.use_multi_level_bom = True
+    #     doc.fg_completed_qty = quantity
+    #     doc.from_warehouse = warehouse
+    #     doc.get_items()
+    #     doc.save()
+    # return True
+
+
 def procurement_submit_hook(crate_activity_summary_doc):
-    warehouse = crate_activity_summary_doc.source_warehouse
-    items = json.loads(crate_activity_summary_doc.items)
-    create_consumption_stock_entry(items, warehouse)
-    create_manufacture_stock_entry(items, warehouse)
+    supplier_id = crate_activity_summary_doc.supplier_id
+    supplier_group = frappe.get_value("Supplier", supplier_id, "supplier_group")
+    if supplier_group == "SHG":
+        items = json.loads(crate_activity_summary_doc.items)
+        warehouse = crate_activity_summary_doc.source_warehouse
+        create_shg_work_orders(items, warehouse)
+    else:
+        warehouse = crate_activity_summary_doc.source_warehouse
+        items = json.loads(crate_activity_summary_doc.items)
+        create_consumption_stock_entry(items, warehouse)
+        create_manufacture_stock_entry(items, warehouse)
 
 
 def transfer_out_submit_hook(crate_activity_summary_doc):
@@ -132,18 +162,18 @@ def transfer_in_submit_hook(crate_activity_summary_doc):
         items, source_warehouse=transit_warehouse, target_warehouse=target_warehouse
     )
 
+
 def parse_tax_rate(s):
     # Use a regular expression to search for a number followed by a percentage sign
-    match = re.search(r'(\d+(\.\d+)?)%', s)
-    
+    match = re.search(r"(\d+(\.\d+)?)%", s)
+
     # If a match is found, convert the matched number to a decimal and return it
     if match:
         tax_rate = float(match.group(1)) / 100
         return tax_rate
-    
+
     # If no match is found, return 0
     return 0
-    
 
 
 def sku_table_hook(crate_activity_summary_doc):
@@ -152,26 +182,27 @@ def sku_table_hook(crate_activity_summary_doc):
     total_number_of_crates = sum([row["number_of_crates"] for row in items])
     total_weight = sum([row["crate_weight"] for row in items])
     price_list = frappe.db.get_single_value("Go Desi Settings", "price_list")
-    
+
     for row in items:
         item_doc = frappe.get_doc("Item", row["item_code"])
         price_list_rates = frappe.get_all(
-                "Item Price",
-                filters={"item_code": row["item_code"], "price_list": price_list},
-                fields=["price_list_rate"],
-            )
-        
-        row['gst_hsn_code'] = item_doc.get('gst_hsn_code') or ''
-        row['tax_rate'] = parse_tax_rate(item_doc.taxes[0].item_tax_template) if len(item_doc.taxes) > 0 else 0
+            "Item Price",
+            filters={"item_code": row["item_code"], "price_list": price_list},
+            fields=["price_list_rate"],
+        )
+
+        row["gst_hsn_code"] = item_doc.get("gst_hsn_code") or ""
+        row["tax_rate"] = (
+            parse_tax_rate(item_doc.taxes[0].item_tax_template)
+            if len(item_doc.taxes) > 0
+            else 0
+        )
         if len(price_list_rates) > 0:
-            row["price"] = (
-                price_list_rates[0]["price_list_rate"]
-                * row["qty"]
-            )
+            row["price"] = price_list_rates[0]["price_list_rate"] * row["qty"]
         else:
             row["price"] = 0
-        row['tax_amount'] = row['price'] * row['tax_rate']
-        row['price_with_tax'] = row['price'] + row['tax_amount']
+        row["tax_amount"] = row["price"] * row["tax_rate"]
+        row["price_with_tax"] = row["price"] + row["tax_amount"]
     total_price = sum([row["price"] for row in items])
     total_tax_amount = sum([row["tax_amount"] for row in items])
     total_price_with_tax = total_price + total_tax_amount
@@ -188,6 +219,7 @@ def sku_table_hook(crate_activity_summary_doc):
         "templates/includes/custom_sku_table.html",
         context,
     )
+
 
 def crate_table_hook(crate_activity_summary_doc):
     crates = json.loads(crate_activity_summary_doc.crates)
