@@ -25,7 +25,9 @@ def warehouse_before_save(doc, event=None):
     ensure_unique_user(doc)
 
 
-def create_consumption_stock_entry(items, warehouse):
+def create_consumption_stock_entry(
+    items, warehouse, use_multi_level_bom=True, submit=False
+):
     for row in items:
         item_code = row["item_code"]
         quantity = row["qty"]
@@ -39,15 +41,18 @@ def create_consumption_stock_entry(items, warehouse):
         else:
             doc.bom_no = bom[0]["name"]
         doc.from_bom = True
-        doc.use_multi_level_bom = True
+        doc.use_multi_level_bom = use_multi_level_bom
         doc.fg_completed_qty = quantity
         doc.from_warehouse = warehouse
         doc.get_items()
         doc.save()
+        if submit:
+            doc.submit()
+    frappe.db.commit()
     return True
 
 
-def create_manufacture_stock_entry(items, warehouse):
+def create_manufacture_stock_entry(items, warehouse, submit=False):
     for row in items:
         item_code = row["item_code"]
         args = {
@@ -64,6 +69,9 @@ def create_manufacture_stock_entry(items, warehouse):
         doc.items[0].is_finished_item = 1
         doc.items[0].allow_zero_valuation_rate = 1
         doc.save()
+        if submit:
+            doc.submit()
+    frappe.db.commit()
     return True
 
 
@@ -95,36 +103,56 @@ def create_transfer_stock_entry(items, source_warehouse, target_warehouse):
     return True
 
 
-def create_shg_work_orders(items, warehouse):
-    pass
-    # for row in items:
-    #     item_code = row["item_code"]
-    #     quantity = row["qty"]
-    #     doc = frappe.new_doc("Stock Entry")
-    #     doc.stock_entry_type = "Material Consumption for Manufacture"
-    #     bom = frappe.get_all(
-    #         "BOM", filters={"item": item_code, "is_default": 1}, limit=1
-    #     )
-    #     if len(bom) == 0:
-    #         frappe.throw(f"Item {item_code} does not have a BOM")
-    #     else:
-    #         doc.bom_no = bom[0]["name"]
-    #     doc.from_bom = True
-    #     doc.use_multi_level_bom = True
-    #     doc.fg_completed_qty = quantity
-    #     doc.from_warehouse = warehouse
-    #     doc.get_items()
-    #     doc.save()
-    # return True
+def create_shg_stock_entries(items, warehouse, target_warehouse):
+    # We first get the individual pops and their quantities
+    sub_items = {}
+    for row in items:
+        item_code = row["item_code"]
+        quantity = row["qty"]
+        bom = frappe.get_all(
+            "BOM", filters={"item": item_code, "is_default": 1}, limit=1
+        )
+        if len(bom) == 0:
+            frappe.throw(f"Item {item_code} does not have a BOM")
+        # else:
+        bom_doc = frappe.get_doc("BOM", bom[0]["name"])
+        for row in bom_doc.items:
+            # p = {"item_code": row.item_code, "qty": quantity * row.qty}
+            if not row.item_code in sub_items:
+                sub_items[row.item_code] = 0
+            sub_items[row.item_code] += quantity * row.qty
+    sub_items = [{"item_code": k, "qty": v} for k, v in sub_items.items()]
+    # The SHG stock entries are created in the following order:
+    # 1. Consume the paste needed for the pops
+    create_consumption_stock_entry(
+        sub_items, warehouse, use_multi_level_bom=False, submit=True
+    )
+    # 2. Manufacture the pops
+    create_manufacture_stock_entry(sub_items, warehouse, submit=True)
+    # Consume the pops needed for the secondary boxes
+    create_consumption_stock_entry(
+        items, warehouse, use_multi_level_bom=False, submit=True
+    )
+    # Manufacture the secondary boxes
+    create_manufacture_stock_entry(items, warehouse, submit=True)
+    # Transfer the secondary boxes to the target warehouse
+    create_transfer_stock_entry(items, warehouse, target_warehouse)
+    return True
 
 
 def procurement_submit_hook(crate_activity_summary_doc):
     supplier_id = crate_activity_summary_doc.supplier_id
     supplier_group = frappe.get_value("Supplier", supplier_id, "supplier_group")
     if supplier_group == "SHG":
+        # For SHG suppliers, the source warehouse has the same name as the supplier id
+        # Also, here we first have to create the individual pop stock entries before transferring.
         items = json.loads(crate_activity_summary_doc.items)
-        warehouse = crate_activity_summary_doc.source_warehouse
-        create_shg_work_orders(items, warehouse)
+        warehouse = frappe.get_value(
+            "Warehouse", {"warehouse_name": supplier_id}, "name"
+        )
+        create_shg_stock_entries(
+            items, warehouse, crate_activity_summary_doc.source_warehouse
+        )
     else:
         warehouse = crate_activity_summary_doc.source_warehouse
         items = json.loads(crate_activity_summary_doc.items)
