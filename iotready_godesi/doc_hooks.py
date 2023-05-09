@@ -55,6 +55,8 @@ def create_consumption_stock_entry(
 def create_manufacture_stock_entry(items, warehouse, submit=False):
     for row in items:
         item_code = row["item_code"]
+        if 'PM-' in item_code:
+            continue
         args = {
             "item_code": item_code,
             "qty": row["qty"],
