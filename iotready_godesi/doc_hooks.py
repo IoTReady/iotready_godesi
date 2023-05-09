@@ -113,7 +113,8 @@ def create_shg_stock_entries(items, warehouse, target_warehouse):
             "BOM", filters={"item": item_code, "is_default": 1}, limit=1
         )
         if len(bom) == 0:
-            frappe.throw(f"Item {item_code} does not have a BOM")
+            # frappe.throw(f"Item {item_code} does not have a BOM")
+            continue
         # else:
         bom_doc = frappe.get_doc("BOM", bom[0]["name"])
         for row in bom_doc.items:
