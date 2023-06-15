@@ -100,9 +100,13 @@
 
     // iotready_godesi.api.submit_activity_form
     const submit_form = () => {
+        const crate_id = $("#crate_id").val();
+        if (!crate_id) {
+            return;
+        }
         const payload = {
             picklist_id: $("#picklist_id").val(),
-            crate_id: $("#crate_id").val(),
+            crate_id: crate_id,
             weight: $("#weight").val(),
             quantity: $("#quantity").val(),
             activity: $("#activity").val(),
@@ -118,6 +122,8 @@
                     frappe.throw(r.exc);
                 } else {
                     console.log(r.message);
+                    // Remove any card with the same crate_id
+                    $(`#${crate_id}`).remove();
                     // insert r.html at the top of #cratelist
                     $("#cratelist").prepend(r.message.html);
 
