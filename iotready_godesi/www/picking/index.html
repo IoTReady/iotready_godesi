@@ -107,8 +107,8 @@
         const payload = {
             picklist_id: $("#picklist_id").val(),
             crate_id: crate_id,
-            weight: $("#weight").val(),
-            quantity: $("#quantity").val(),
+            picked_weight: $("#weight").val(),
+            picked_quantity: $("#quantity").val(),
             activity: $("#activity").val(),
             csrf_token: $("#csrf_token").val(),
         };
@@ -126,7 +126,7 @@
                     $(`#${crate_id}`).remove();
                     // insert r.html at the top of #cratelist
                     $("#cratelist").prepend(r.message.html);
-
+                    get_picklist_summary(payload.picklist_id);
                 }
             },
             freeze: true,

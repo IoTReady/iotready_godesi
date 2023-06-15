@@ -106,6 +106,9 @@ def record_event(**kwargs):
     message = "Event not recorded."
     success = False
     if crate_id and activity:
+        if not frappe.db.exists("Crate", crate_id):
+            frappe.throw(f"Crate with ID {crate_id} does not exist.")
+        crate_doc = frappe.get_doc("Crate", crate_id)
         doc = frappe.new_doc("Crate Activity")
         doc.crate_id = crate_id
         doc.activity = activity
@@ -114,11 +117,20 @@ def record_event(**kwargs):
         doc.item_code = kwargs.get("item_code")
         doc.stock_uom = kwargs.get("stock_uom")
         doc.crate_weight = float(kwargs.get("weight") or 0)
+        if not kwargs.get("stock_uom"):
+            doc.stock_uom = crate_doc.stock_uom
         if doc.stock_uom == "KG":
             doc.grn_quantity = doc.crate_weight
         else:
-            doc.grn_quantity = float(kwargs.get("quantity"))
-        doc.before_insert()
+            doc.grn_quantity = float(kwargs.get("quantity") or 0)
+        doc.picked_weight = float(kwargs.get("picked_weight") or 0)
+        if doc.stock_uom == "KG":
+            doc.picked_quantity = doc.picked_weight
+        else:
+            doc.picked_quantity = float(kwargs.get("picked_quantity") or 0)
+        doc.grn_quantity = crate_doc.last_known_grn_quantity - doc.picked_quantity
+        doc.crate_weight = crate_doc.last_known_weight - doc.picked_weight
+        doc.status = "Completed"
         doc.save()
         frappe.db.commit()
         message = "Event recorded successfully."
