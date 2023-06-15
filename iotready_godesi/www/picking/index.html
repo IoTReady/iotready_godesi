@@ -3,7 +3,7 @@
 {% block page_content %}
 
 
-<div x-data="{picklist_id: `{{picklist_id}}`, crate_id: ''}">
+<div x-data="{picklist_id: `{{picklist_id}}`, crate_id: '', package_id: ''}">
     <form id="activityForm">
         <div class="form-group">
             <label for="picklist_id">Pick List</label>
@@ -21,6 +21,15 @@
         <div class="form-group">
             <label for="crate_id">Crate ID</label>
             <input type="text" class="form-control" name="crate_id" id="crate_id" x-model="crate_id" required>
+        </div>
+        <div class="form-group" id="package_id-form-group" style="display: none">
+            <label for="package_id">Package ID</label>
+            <select class="form-control" name="package_id" id="package_id" value="{{package_id}}" x-model="package_id">
+                <option value="">Select Package</option>
+                {% for o in packages %}
+                <option value="{{o}}" {{'selected' if o==package_id}}>{{o}}</option>
+                {% endfor %}
+            </select>
         </div>
         <div class="form-group">
             <label for="weight">Weight</label>
@@ -54,6 +63,7 @@
     </div>
 </div>
 <script>
+    const quantities = {};
 
     const get_picklist_summary = (picklist_id) => {
         frappe.call({
@@ -90,6 +100,7 @@
                     frappe.throw(r.exc);
                 } else {
                     $("#quantity").val(r.message);
+                    quantities[crate_id] = r.message;
                 }
             },
             freeze: true,
@@ -106,6 +117,7 @@
         }
         const payload = {
             picklist_id: $("#picklist_id").val(),
+            package_id: $("#package_id").val(),
             crate_id: crate_id,
             picked_weight: $("#weight").val(),
             picked_quantity: $("#quantity").val(),
@@ -122,11 +134,24 @@
                     frappe.throw(r.exc);
                 } else {
                     console.log(r.message);
-                    // Remove any card with the same crate_id
-                    $(`#${crate_id}`).remove();
-                    // insert r.html at the top of #cratelist
-                    $("#cratelist").prepend(r.message.html);
-                    get_picklist_summary(payload.picklist_id);
+                    if (r.message.success) {
+                        // Remove any card with the same crate_id
+                        $(`#${crate_id}`).remove();
+                        // insert r.html at the top of #cratelist
+                        $("#cratelist").prepend(r.message.html);
+                        get_picklist_summary(payload.picklist_id);
+                    } else if (r.message.missing_package_id) {
+                        frappe.msgprint("Please enter package id");
+                        if (r.message.package_ids) {
+                            // Add these IDs as options to the select
+                            r.message.package_ids.map((id) => {
+                                $('#package_id').append(new Option(id, id))
+                            });
+                            $("#package_id-form-group").show();
+                            $("#package_id").attr("required", true);
+
+                        }
+                    }
                 }
             },
             freeze: true,
