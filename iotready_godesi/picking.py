@@ -24,3 +24,5 @@ def get_picklists():
     return picklists
 
 
+def get_picklist_summary(picklist_id):
+    return frappe.render_template("templates/includes/picklist_summary.html", {"picklist_id": picklist_id})

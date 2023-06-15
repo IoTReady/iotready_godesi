@@ -132,3 +132,10 @@ def get_user_warehouse():
     )
     assert len(warehouses) > 0, "User not assigned to any warehouse."
     return warehouses[0]["parent"]
+
+
+def get_crate_quantity(crate_id):
+    if frappe.db.exists("Crate", crate_id):
+        crate_doc = frappe.get_doc("Crate", crate_id)
+        return crate_doc.last_known_grn_quantity
+    return None

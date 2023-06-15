@@ -1,0 +1,112 @@
+{% extends "templates/custom_base.html" %}
+
+{% block page_content %}
+
+
+<div x-data="{item_code: '{{item_code}}', picklist_id: `{{picklist_id}}`, crate_id: ''}">
+    <form hx-post="/api/method/iotready_godesi.api.submit_activity_form" hx-target="#cratelist">
+        <div class="form-group">
+            <label for="picklist_id">Pick List</label>
+            <select class="form-control" name="picklist_id" id="picklist_id" value="{{picklist_id}}"
+                x-model="picklist_id" required>
+                <option value="">Select Pick List</option>
+                {% for o in pick_lists %}
+                <option value="{{o.name}}" {{'selected' if o.name==picklist_id}}>{{o.name}}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div id="picklist_summary" class="my-2">
+            {% include "templates/includes/picklist_summary.html" %}
+        </div>
+        <div class="form-group">
+            <label for="crate_id">Crate ID</label>
+            <input type="text" class="form-control" name="crate_id" id="crate_id" x-model="crate_id" required>
+        </div>
+        <div class="form-group">
+            <label for="weight">Weight</label>
+            <input type="number" step="0.01" class="form-control" name="weight" id="weight">
+        </div>
+        <div class="form-group" id="form-group-quantity">
+            <label for="quantity">Quantity</label>
+            <input type="number" class="form-control" name="quantity" id="quantity" required>
+        </div>
+        <input type="hidden" name="activity" value="{{title}}">
+        <input type="hidden" name="csrf_token" value="{{ frappe.session.csrf_token }}">
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+
+    <div x-effect="set_stock_uom(item_code)"></div>
+    <div x-effect="get_crate_quantity(crate_id)"></div>
+    <div x-effect="get_picklist_summary(picklist_id)"></div>
+    <div class="my-2">
+        {% if message %}
+        <p class="text-info">{{message}}</p>
+        {% endif %}
+        {% if show_crate_summary %}
+        {% include "templates/includes/crate_summary.html" %}
+        {% endif %}
+        {% if show_item_summary %}
+        {% include "templates/includes/item_summary.html" %}
+        {% endif %}
+    </div>
+
+    <div id="cratelist" class="my-2">
+        {% include "templates/includes/cratelist.html" %}
+    </div>
+</div>
+<script>
+
+    const set_stock_uom = (item_code) => {
+        if (!item_code || item_code === 'None') return;
+        // read data-stock-uom attribute from selected option
+        const i = document.getElementById('op-' + item_code).dataset;
+        document.getElementById('stock_uom').value = i.stockUom;
+        document.getElementById('form-group-quantity').style.display = i.stockUom == 'KG' ? 'none' : 'block';
+        document.getElementById('quantity').required = i.stockUom == 'Nos';
+    }
+
+    const get_picklist_summary = (picklist_id) => {
+        frappe.call({
+            method: "iotready_godesi.api.get_picklist_summary",
+            type: "POST",
+            args: {
+                picklist_id
+            },
+            callback: (r) => {
+                if (r.exc) {
+                    frappe.throw(r.exc);
+                } else {
+                    $("#picklist_summary").html(r.message);
+                }
+            },
+            freeze: true,
+            freeze_message: "Please wait...",
+            async: true,
+        });
+    }
+
+    const get_crate_quantity = (crate_id) => {
+        if (!crate_id) {
+            return;
+        }
+        frappe.call({
+            method: "iotready_godesi.api.get_crate_quantity",
+            type: "POST",
+            args: {
+                crate_id
+            },
+            callback: (r) => {
+                if (r.exc) {
+                    frappe.throw(r.exc);
+                } else {
+                    $("#quantity").val(r.message);
+                }
+            },
+            freeze: true,
+            freeze_message: "Please wait...",
+            async: true,
+        });
+    }
+</script>
+
+{% endblock %}

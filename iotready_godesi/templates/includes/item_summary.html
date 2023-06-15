@@ -1,0 +1,18 @@
+<table class="table table-borderless">
+  <thead>
+    <tr>
+      <th scope="col">SKU</th>
+      <th scope="col">Count</th>
+      <th scope="col">Qty</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in item_summary %}
+    <tr>
+      <td>{{row.item_code}}</td>
+      <td>{{row.count}}</td>
+      <td>{{row.quantity}}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
