@@ -104,6 +104,7 @@ def record_event(**kwargs):
     crate_id = kwargs.get("crate_id")
     activity = kwargs.get("activity")
     message = "Event not recorded."
+    success = False
     if crate_id and activity:
         doc = frappe.new_doc("Crate Activity")
         doc.crate_id = crate_id
@@ -116,16 +117,13 @@ def record_event(**kwargs):
         if doc.stock_uom == "KG":
             doc.grn_quantity = doc.crate_weight
         else:
-            doc.grn_quantity = kwargs.get("quantity")
+            doc.grn_quantity = float(kwargs.get("quantity"))
         doc.before_insert()
         doc.save()
         frappe.db.commit()
         message = "Event recorded successfully."
-    frappe.local.message_title = "Crate Activity"
-    frappe.local.message = message 
-    frappe.local.response["type"] = "page"
-    frappe.local.response["route"] = f"/fragments/cratelist"
-    # frappe.local.response["route"] = f"/fragments/craterow?crate_id={crate_id}"
-    frappe.local.no_cache = 1
-    frappe.local.response["http_status_code"] = 200
-    frappe.local.response["context"] = {"fullpage": True}
+        success = True
+        html = frappe.render_template("templates/includes/craterow.html", {"crate": get_crate_details(crate_id)})
+    else:
+        html = "Crate ID and activity are both necessary."
+    return {"success": success, "message": message, "html": html}
