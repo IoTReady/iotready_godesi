@@ -16,3 +16,7 @@ def submit_activity_form(**kwargs):
 @frappe.whitelist()
 def get_crate_quantity(crate_id):
     return utils.get_crate_quantity(crate_id)
+
+@frappe.whitelist()
+def get_package_ids(picklist_id):
+    return picking.get_package_ids(picklist_id)

@@ -12,6 +12,7 @@ def get_context(context):
     context.weight = parameters.get("weight")
     context.message = parameters.get("message")
     context.pick_lists = picking.get_picklists()
+    context.package_ids = picking.get_package_ids(context.picklist_id)
     context.items = webutils.get_items()
-    crate_list_context = webutils.get_crate_list_context(context.title)
+    crate_list_context = webutils.get_crate_list_context(context.title, include_completed=True)
     context.update(crate_list_context)
