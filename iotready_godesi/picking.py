@@ -26,3 +26,10 @@ def get_picklists():
 
 def get_picklist_summary(picklist_id):
     return frappe.render_template("templates/includes/picklist_summary.html", {"picklist_id": picklist_id})
+
+def get_package_ids(picklist_id):
+    package_ids = ["New"] + list({r.package_id for r in frappe.get_all("Crate Activity", filters={
+                    "activity": "Picking",
+                    "picklist_id": picklist_id,
+                }, fields=["package_id"])})
+    return package_ids

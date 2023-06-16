@@ -1,5 +1,6 @@
 import frappe
 from datetime import datetime, timedelta
+from iotready_godesi import picking
 
 # IMPORTANT: DO NOT USE frappe.get_all in this module. Always use frappe.get_list - which respects user permissions.
 
@@ -36,7 +37,7 @@ def get_crate_details(crate_id):
     return crate_details
 
 
-def get_crates(activity=None, supplier_id=None):
+def get_crates(activity=None, supplier_id=None, include_completed=False):
     now = datetime.now()
     then = now - timedelta(hours=24)
     filters = {
@@ -56,8 +57,9 @@ def get_crates(activity=None, supplier_id=None):
     FROM `tabCrate Activity`
     WHERE owner = %(owner)s
     AND creation >= %(creation)s
-    AND status = 'Draft'
     """
+    if not include_completed:
+        sql += " AND status = 'Draft'"
     if activity:
         sql += " AND activity = %(activity)s"
     if supplier_id:
@@ -90,8 +92,8 @@ def get_crate_summary(crates):
         summary["quantity"] += crate.get("grn_quantity")
     return summary
 
-def get_crate_list_context(activity=None):
-    crates = get_crates(activity=activity)
+def get_crate_list_context(activity=None, include_completed=False):
+    crates = get_crates(activity=activity, include_completed=include_completed)
     item_summary = get_item_summary(crates)
     crate_summary = get_crate_summary(crates)
     context = {"crates": crates, "item_summary": item_summary, "crate_summary": crate_summary, "show_crate_summary": False, "show_item_summary": True}
@@ -130,14 +132,25 @@ def record_event(**kwargs):
             doc.picked_quantity = float(kwargs.get("picked_quantity") or 0)
         doc.grn_quantity = crate_doc.last_known_grn_quantity - doc.picked_quantity
         doc.crate_weight = crate_doc.last_known_weight - doc.picked_weight
-        if doc.picked_quantity == crate_doc.last_known_grn_quantity:
-            doc.package_id = crate_id
-        elif not kwargs.get("package_id"):
-            # TODO: Get package IDs from Package table
-            package_ids = ["A", "B", "C"]
-            return {"success": False, "message": "Need package ID for partial quantities.", "missing_package_id": True, "package_ids": package_ids}
-        else:
-            doc.package_id = kwargs.get("package_id")
+        if activity == "Picking":
+            if doc.picked_quantity == crate_doc.last_known_grn_quantity:
+                doc.package_id = crate_id
+            elif not kwargs.get("package_id"):
+                # Get package IDs from activity table
+                package_ids = picking.get_package_ids(kwargs.get("picklist_id"))
+                return {"success": False, "message": "Need package ID for partial quantities.", "missing_package_id": True, "package_ids": package_ids}
+            else:
+                doc.package_id = kwargs.get("package_id")
+                if doc.package_id == "New":
+                    package_ids = picking.get_package_ids(kwargs.get("picklist_id"))
+                    # find integer strings in package_ids
+                    package_ids = [int(x) for x in package_ids if x.isdigit()]
+                    if package_ids:
+                        doc.package_id = max(package_ids) + 1
+                    else:
+                        doc.package_id = 1
+                else:
+                    doc.package_id = int(doc.package_id)
         doc.status = "Completed"
         doc.save()
         frappe.db.commit()
