@@ -1,0 +1,169 @@
+{% extends "templates/custom_base.html" %}
+
+{% block page_content %}
+
+
+<div x-data="{picklist_id: `{{picklist_id}}`, crate_id: '', package_id: ''}">
+    <form id="activityForm">
+        <div class="form-group">
+            <label for="picklist_id">Pick List</label>
+            <select class="form-control" name="picklist_id" id="picklist_id" value="{{picklist_id}}"
+                x-model="picklist_id" required>
+                <option value="">Select Pick List</option>
+                {% for o in pick_lists %}
+                <option value="{{o.name}}" {{'selected' if o.name==picklist_id}}>{{o.name}}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div id="picklist_summary" class="my-2">
+            {% include "templates/includes/picklist_summary.html" %}
+        </div>
+        <div class="form-group">
+            <label for="crate_id">Crate ID</label>
+            <input type="text" class="form-control" name="crate_id" id="crate_id" x-model="crate_id" required>
+        </div>
+        <div class="form-group" id="package_id-form-group" style="display: none">
+            <label for="package_id">Package ID</label>
+            <select class="form-control" name="package_id" id="package_id" value="{{package_id}}" x-model="package_id">
+                <option value="">Select Package</option>
+                {% for o in packages %}
+                <option value="{{o}}" {{'selected' if o==package_id}}>{{o}}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="weight">Weight</label>
+            <input type="number" step="0.01" class="form-control" name="weight" id="weight">
+        </div>
+        <div class="form-group" id="form-group-quantity">
+            <label for="quantity">Quantity</label>
+            <input type="number" class="form-control" name="quantity" id="quantity" required>
+        </div>
+        <input type="hidden" name="activity" id="activity" value="{{title}}">
+        <input type="hidden" name="csrf_token" id="csrf_token" value="{{ frappe.session.csrf_token }}">
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+
+    <div x-effect="get_crate_quantity(crate_id)"></div>
+    <div x-effect="get_picklist_summary(picklist_id)"></div>
+    <div class="my-2">
+        {% if message %}
+        <p class="text-info">{{message}}</p>
+        {% endif %}
+        {% if show_crate_summary %}
+        {% include "templates/includes/crate_summary.html" %}
+        {% endif %}
+        {% if show_item_summary %}
+        {% include "templates/includes/item_summary.html" %}
+        {% endif %}
+    </div>
+
+    <div class="my-2">
+        {% include "templates/includes/cratelist.html" %}
+    </div>
+</div>
+<script>
+    const quantities = {};
+
+    const get_picklist_summary = (picklist_id) => {
+        frappe.call({
+            method: "iotready_godesi.api.get_picklist_summary",
+            type: "POST",
+            args: {
+                picklist_id
+            },
+            callback: (r) => {
+                if (r.exc) {
+                    frappe.throw(r.exc);
+                } else {
+                    $("#picklist_summary").html(r.message);
+                }
+            },
+            freeze: true,
+            freeze_message: "Please wait...",
+            async: true,
+        });
+    }
+
+    const get_crate_quantity = (crate_id) => {
+        if (!crate_id) {
+            return;
+        }
+        frappe.call({
+            method: "iotready_godesi.api.get_crate_quantity",
+            type: "POST",
+            args: {
+                crate_id
+            },
+            callback: (r) => {
+                if (r.exc) {
+                    frappe.throw(r.exc);
+                } else {
+                    $("#quantity").val(r.message);
+                    quantities[crate_id] = r.message;
+                }
+            },
+            freeze: true,
+            freeze_message: "Please wait...",
+            async: true,
+        });
+    }
+
+    // iotready_godesi.api.submit_activity_form
+    const submit_form = () => {
+        const crate_id = $("#crate_id").val();
+        if (!crate_id) {
+            return;
+        }
+        const payload = {
+            picklist_id: $("#picklist_id").val(),
+            package_id: $("#package_id").val(),
+            crate_id: crate_id,
+            picked_weight: $("#weight").val(),
+            picked_quantity: $("#quantity").val(),
+            activity: $("#activity").val(),
+            csrf_token: $("#csrf_token").val(),
+        };
+        console.log(payload);
+        frappe.call({
+            method: "iotready_godesi.api.submit_activity_form",
+            type: "POST",
+            args: payload,
+            callback: (r) => {
+                if (r.exc) {
+                    frappe.throw(r.exc);
+                } else {
+                    console.log(r.message);
+                    if (r.message.success) {
+                        // Remove any card with the same crate_id
+                        $(`#${crate_id}`).remove();
+                        // insert r.html at the top of #cratelist
+                        $("#cratelist").prepend(r.message.html);
+                        get_picklist_summary(payload.picklist_id);
+                    } else if (r.message.missing_package_id) {
+                        frappe.msgprint("Please enter package id");
+                        if (r.message.package_ids) {
+                            // Add these IDs as options to the select
+                            r.message.package_ids.map((id) => {
+                                $('#package_id').append(new Option(id, id))
+                            });
+                            $("#package_id-form-group").show();
+                            $("#package_id").attr("required", true);
+
+                        }
+                    }
+                }
+            },
+            freeze: true,
+            freeze_message: "Please wait...",
+            async: true,
+        });
+    }
+
+    activityForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        submit_form();
+    });
+</script>
+
+{% endblock %}

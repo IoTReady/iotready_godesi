@@ -1,0 +1,21 @@
+{% if picklist_id and picklist_id !='None' %}
+{% set doc = frappe.get_doc('Pick List', picklist_id) %}
+<table class="table table-borderless">
+  <thead>
+    <tr>
+      <th scope="col">SKU</th>
+      <th scope="col">Required</th>
+      <th scope="col">Picked</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in doc.locations %}
+    <tr>
+      <td>{{row.item_name}}</td>
+      <td>{{row.qty}} {{row.stock_uom}}</td>
+      <td>{{row.picked_qty}} {{row.stock_uom}}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}

@@ -1,0 +1,44 @@
+<div class="card my-1" id="{{crate.crate_id}}" data-crate-id="{{crate.crate_id}}">
+  <div class="card-body">
+    <div class="d-flex w-100 justify-content-between">
+      <h5 class="card-title">
+        {{crate.crate_id}}
+      </h5>
+      <small>{{crate.grn_quantity}} {{crate.stock_uom}}</small>
+    </div>
+    <p class="card-text">{{crate.item_code}} procured at {{crate.procurement_warehouse_name}} from
+      {{crate.supplier_id}} on {{frappe.format_date(crate.procurement_timestamp)}}</p>
+  </div>
+</div>
+
+<style>
+  .card {
+    border: 1px solid rgba(0, 0, 0, .125);
+    border-radius: .25rem;
+    margin-bottom: .25rem;
+  }
+
+  .card-body {
+    padding: 1.25rem;
+  }
+
+  .d-flex {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .card-title {
+    margin-bottom: .75rem;
+  }
+
+  .card-text {
+    margin-top: 0;
+    margin-bottom: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .card-body {
+      padding: 0.5rem;
+    }
+  }
+</style>

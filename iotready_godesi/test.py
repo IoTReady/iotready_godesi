@@ -117,11 +117,11 @@ if __name__ == "__main__":
     # Procure crates
     for crate_id in crates:
         print(crate_id)
-        # procure_crate(crate_id)
+        procure_crate(crate_id)
         # transfer_out_crate(crate_id)
         # transfer_in_crate(crate_id)
         # delete_crate(crate_id)
-        cycle_count_crate(crate_id)
+        # cycle_count_crate(crate_id)
     # identify_crate(crate_id)
     # split_crate(crate_id)
     # Parallel(n_jobs=8)(delayed(procure_crate)(crate) for crate in crates)
