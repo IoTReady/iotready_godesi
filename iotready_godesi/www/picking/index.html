@@ -43,6 +43,7 @@
         <input type="hidden" name="activity" id="activity" value="{{title}}">
         <input type="hidden" name="csrf_token" id="csrf_token" value="{{ frappe.session.csrf_token }}">
         <button type="submit" class="btn btn-primary">Submit</button>
+        <button type="button" class="btn btn-primary" x-on:click="complete_picking">Complete Picking</button>
     </form>
 
     <div x-effect="get_crate_quantity(crate_id)"></div>
@@ -67,6 +68,54 @@
 </div>
 <script>
     const quantities = {};
+
+    const complete_picking = () => {
+        const picklist_id = $("#picklist_id").val();
+        if (!picklist_id) {
+            return;
+        }
+        frappe.call({
+            method: "iotready_godesi.api.is_picking_complete",
+            type: "POST",
+            args: {
+                picklist_id
+            },
+            callback: (r) => {
+                if (r.exc) {
+                    frappe.throw(r.exc);
+                } else {
+                    if (!r.message) {
+                        const note = window.prompt("Please explain why the pick list is being completed without fulfilling all items.");
+                        console.log("note", note);
+                        if (note) {
+                            frappe.call({
+                                method: "iotready_godesi.api.mark_as_complete",
+                                type: "POST",
+                                args: {
+                                    picklist_id,
+                                    note
+                                },
+                                callback: (r) => {
+                                    if (r.exc) {
+                                        frappe.throw(r.exc);
+                                    } else {
+                                        window.location.reload();
+                                    }
+                                },
+                                freeze: true,
+                                freeze_message: "Please wait...",
+                                async: true,
+                            });
+                        }
+                    }
+
+                }
+            },
+            freeze: true,
+            freeze_message: "Please wait...",
+            async: true,
+        });
+    }
 
     const add_crate_as_package_option = (crate_id) => {
         if (!crate_id) {
