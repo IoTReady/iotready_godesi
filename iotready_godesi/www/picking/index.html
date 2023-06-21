@@ -18,11 +18,20 @@
         <div id="picklist_summary" class="my-2">
             {% include "templates/includes/picklist_summary.html" %}
         </div>
-        <div class="form-group">
+        <div class="form-group" {{'hidden' if embedded}}>
             <label for="crate_id">Crate ID</label>
             <input type="text" class="form-control" name="crate_id" id="crate_id" x-model="crate_id" required>
         </div>
-        <div class="form-group" id="package_id-form-group">
+        <div class="form-group" style="display: none;">
+            <label for="weight">Weight</label>
+            <input type="number" step="0.01" class="form-control" name="weight" id="weight">
+        </div>
+        <div class="form-group" id="form-group-quantity" style="display: none;">
+            <label for="quantity">Quantity</label>
+            <input type="number" min="0" class="form-control" name="quantity" id="quantity" x-on:blur="confirm_quantity"
+                required>
+        </div>
+        <div class="form-group" id="package_id-form-group" style="display: none;">
             <label for="package_id">Package ID</label>
             <select class="form-control" name="package_id" id="package_id" value="{{package_id}}" x-model="package_id">
                 <option value="">Select Package</option>
@@ -31,18 +40,9 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="form-group" style="display: none;">
-            <label for="weight">Weight</label>
-            <input type="number" step="0.01" class="form-control" name="weight" id="weight">
-        </div>
-        <div class="form-group" id="form-group-quantity">
-            <label for="quantity">Quantity</label>
-            <input type="number" min="0" class="form-control" name="quantity" id="quantity" x-on:blur="confirm_quantity"
-                required>
-        </div>
         <input type="hidden" name="activity" id="activity" value="{{title}}">
         <input type="hidden" name="csrf_token" id="csrf_token" value="{{ frappe.session.csrf_token }}">
-        <button type="submit" class="btn btn-primary">Submit</button>
+        <button type="submit" id="submit-btn" class="btn btn-primary" style="display: none;">Submit</button>
         <button type="button" class="btn btn-primary" x-on:click="complete_picking">Complete Picking</button>
     </form>
 
@@ -68,6 +68,33 @@
 </div>
 <script>
     const quantities = {};
+
+    const set_crate_id = (crate_id) => {
+        $("#crate_id").val(crate_id);
+        $("#package_id-form-group").show();
+        $("#form-group-quantity").show();
+        $("#submit-btn").show();
+        get_crate_quantity(crate_id);
+        add_crate_as_package_option(crate_id);
+    }
+
+    const set_quantity = (quantity) => {
+        $("#quantity").val(quantity);
+    }
+
+    const set_weight = (weight) => {
+        $("#weight").val(weight);
+    }
+
+    const reset_form = () => {
+        $("#crate_id").val("");
+        $("#package_id").val("");
+        $("#quantity").val("");
+        $("#weight").val("");
+        $("#package_id-form-group").hide();
+        $("#form-group-quantity").hide();
+        $("#submit-btn").hide();
+    }
 
     const complete_picking = () => {
         const picklist_id = $("#picklist_id").val();
@@ -121,8 +148,11 @@
         if (!crate_id) {
             return;
         }
-        $('#package_id').append(new Option(crate_id, crate_id));
-        $("#package_id").val(crate_id);
+        const optionExists = ($('#package_id option[value=' + crate_id + ']').length > 0);
+        if (!optionExists) {
+            $('#package_id').append(new Option(crate_id, crate_id));
+            $("#package_id").val(crate_id);
+        }
     }
 
     const confirm_quantity = () => {
@@ -201,6 +231,7 @@
                 crate_id
             },
             callback: (r) => {
+                console.log("r", r);
                 if (r.exc) {
                     frappe.throw(r.exc);
                 } else {
@@ -219,16 +250,18 @@
     // iotready_godesi.api.submit_activity_form
     const submit_form = () => {
         const crate_id = $("#crate_id").val();
-        if (!crate_id) {
-            return;
-        }
         const picked_quantity = $("#quantity").val();
+        const picklist_id = $("#picklist_id").val();
+        const package_id = $("#package_id").val();
+        if (!crate_id || !picked_quantity || !picklist_id) {
+            frappe.throw("Please fill all the fields");
+        }
         const payload = {
-            picklist_id: $("#picklist_id").val(),
-            package_id: $("#package_id").val(),
+            picklist_id: picklist_id,
+            package_id: package_id,
             crate_id: crate_id,
-            picked_weight: $("#weight").val(),
             picked_quantity: picked_quantity,
+            picked_weight: $("#weight").val(),
             activity: $("#activity").val(),
             csrf_token: $("#csrf_token").val(),
         };
@@ -247,6 +280,8 @@
                         $("#cratelist").prepend(r.message.html);
                         get_picklist_summary(payload.picklist_id);
                         get_package_ids(payload.picklist_id);
+                        reset_form();
+
                     } else if (r.message.missing_package_id) {
                         frappe.msgprint("Please enter package id");
                         get_package_ids(payload.picklist_id);
