@@ -18,9 +18,14 @@
         <div id="picklist_summary" class="my-2">
             {% include "templates/includes/picklist_summary.html" %}
         </div>
-        <div class="form-group" {{'hidden' if embedded}}>
-            <label for="crate_id">Crate ID</label>
-            <input type="text" class="form-control" name="crate_id" id="crate_id" x-model="crate_id" required>
+        <div class="form-row">
+            <div class="form-group col-md-9 col-xs-9" {{'hidden' if embedded}}>
+                <label for="crate_id">Crate ID</label>
+                <input type="text" class="form-control" name="crate_id" id="crate_id" x-model="crate_id" required>
+            </div>
+            <div class="form-group col-md-3 col-xs-3" {{'hidden' if not (embedded and show_scan_button)}}>
+                <button type="button" class="btn btn-info" onclick="AndroidBridge.navigateToScan();">Scan</button>
+            </div>
         </div>
         <div class="form-group" style="display: none;">
             <label for="weight">Weight</label>
@@ -43,7 +48,7 @@
         <input type="hidden" name="activity" id="activity" value="{{title}}">
         <input type="hidden" name="csrf_token" id="csrf_token" value="{{ frappe.session.csrf_token }}">
         <button type="submit" id="submit-btn" class="btn btn-primary" style="display: none;">Submit</button>
-        <button type="button" class="btn btn-primary" x-on:click="complete_picking">Complete Picking</button>
+        <button type="button" class="btn btn-warning" x-on:click="complete_picking">Complete Picking</button>
     </form>
 
     <div x-effect="get_crate_quantity(crate_id)"></div>

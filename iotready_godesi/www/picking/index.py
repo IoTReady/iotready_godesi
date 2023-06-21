@@ -9,6 +9,7 @@ def get_context(context):
     context.title = "Picking"
     parameters = frappe.form_dict
     context.embedded = parameters.get("embedded")
+    context.show_scan_button = parameters.get("show_scan_button")
     context.picklist_id = parameters.get("picklist_id")
     context.item_code = parameters.get("item_code")
     context.crate_id = parameters.get("crate_id")
