@@ -18,14 +18,17 @@
         <div id="picklist_summary" class="my-2">
             {% include "templates/includes/picklist_summary.html" %}
         </div>
-        <div class="form-row">
-            <div class="form-group col-md-9 col-xs-9" {{'hidden' if embedded}}>
-                <label for="crate_id">Crate ID</label>
-                <input type="text" class="form-control" name="crate_id" id="crate_id" x-model="crate_id" required>
+        <div class="form-group" id="crate_id-form-group">
+            <label for="crate_id">Crate ID</label>
+            <div class="input-group">
+                <input type="text" class="form-control" name="crate_id" id="crate_id" x-model="crate_id" required
+                    {{'disabled' if embedded}}>
+                <div class="input-group-prepend" {{'hidden' if not (embedded and show_scan_button)}}>
+                    <div class="input-group-text btn btn-info" type="button" onclick="AndroidBridge.navigateToScan();">
+                        Scan</div>
+                </div>
             </div>
-            <div class="form-group col-md-3 col-xs-3" {{'hidden' if not (embedded and show_scan_button)}}>
-                <button type="button" class="btn btn-info" onclick="AndroidBridge.navigateToScan();">Scan</button>
-            </div>
+
         </div>
         <div class="form-group" style="display: none;">
             <label for="weight">Weight</label>
@@ -76,6 +79,7 @@
 
     const set_crate_id = (crate_id) => {
         $("#crate_id").val(crate_id);
+        $("#crate_id-form-group").show();
         $("#package_id-form-group").show();
         $("#form-group-quantity").show();
         $("#submit-btn").show();
@@ -96,6 +100,7 @@
         $("#package_id").val("");
         $("#quantity").val("");
         $("#weight").val("");
+        $("#crate_id-form-group").hide();
         $("#package_id-form-group").hide();
         $("#form-group-quantity").hide();
         $("#submit-btn").hide();
