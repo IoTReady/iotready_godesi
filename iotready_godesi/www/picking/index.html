@@ -23,7 +23,8 @@
             <div class="input-group">
                 <input type="text" class="form-control" name="crate_id" id="crate_id" x-model="crate_id" required
                     {{'disabled' if embedded}}>
-                <div class="input-group-prepend" {{'hidden' if not (embedded and show_scan_button)}}>
+                <div class="input-group-prepend" id="scan-button-group"
+                    style="{{'display: none;' if not (embedded and show_scan_button)}}">
                     <div class="input-group-text btn btn-info" type="button" onclick="AndroidBridge.navigateToScan();">
                         Scan</div>
                 </div>
@@ -76,6 +77,10 @@
 </div>
 <script>
     const quantities = {};
+
+    const show_scan_button = () => {
+        $("#scan-button-group").show();
+    }
 
     const set_crate_id = (crate_id) => {
         $("#crate_id").val(crate_id);
