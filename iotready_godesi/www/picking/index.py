@@ -3,13 +3,19 @@ from iotready_godesi import webutils, picking
 
 
 def get_context(context):
-    if frappe.session.user == "Guest":
-        frappe.local.flags.redirect_location = "/?redirect-to=/picking#login"
-        raise frappe.Redirect
-    context.title = "Picking"
     parameters = frappe.form_dict
     context.embedded = parameters.get("embedded")
     context.show_scan_button = parameters.get("show_scan_button")
+    if frappe.session.user == "Guest":
+        url = "/?redirect-to=/picking"
+        if context.embedded:
+            url += "?embedded=1"
+            if context.show_scan_button:
+                url += "&show_scan_button=1"
+        url += "#login"
+        frappe.local.flags.redirect_location = url
+        raise frappe.Redirect
+    context.title = "Picking"
     context.picklist_id = parameters.get("picklist_id")
     context.item_code = parameters.get("item_code")
     context.crate_id = parameters.get("crate_id")
