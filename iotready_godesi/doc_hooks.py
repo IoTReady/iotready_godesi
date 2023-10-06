@@ -26,7 +26,7 @@ def warehouse_before_save(doc, event=None):
 
 
 def create_consumption_stock_entry(
-    items, warehouse, use_multi_level_bom=True, submit=False
+    items, warehouse, use_multi_level_bom=True, submit=False, crate_activity_summary_ref=None
 ):
     for row in items:
         item_code = row["item_code"]
@@ -41,11 +41,15 @@ def create_consumption_stock_entry(
             # frappe.throw(f"Item {item_code} does not have a BOM")
         else:
             doc.bom_no = bom[0]["name"]
+        ref = f"{crate_activity_summary_ref}-{doc.bom_no}-consumption"
+        # if frappe.get_all("Stock Entry", filters={"crate_activity_summary": ref}):
+        #     continue
         doc.from_bom = True
         doc.use_multi_level_bom = use_multi_level_bom
         doc.fg_completed_qty = quantity
         doc.from_warehouse = warehouse
         doc.get_items()
+        doc.crate_activity_summary = ref
         doc.save()
         if submit:
             doc.submit()
@@ -53,11 +57,14 @@ def create_consumption_stock_entry(
     return True
 
 
-def create_manufacture_stock_entry(items, warehouse, submit=False):
+def create_manufacture_stock_entry(items, warehouse, submit=False, crate_activity_summary_ref=None):
     for row in items:
         item_code = row["item_code"]
         if 'PM-' in item_code:
             continue
+        ref = f"{crate_activity_summary_ref}-{item_code}-manufacture"
+        # if frappe.get_all("Stock Entry", filters={"crate_activity_summary": ref}):
+        #     continue
         args = {
             "item_code": item_code,
             "qty": row["qty"],
@@ -71,6 +78,7 @@ def create_manufacture_stock_entry(items, warehouse, submit=False):
         doc = make_stock_entry(**args)
         doc.items[0].is_finished_item = 1
         doc.items[0].allow_zero_valuation_rate = 1
+        doc.crate_activity_summary = ref
         doc.save()
         if submit:
             doc.submit()
@@ -78,8 +86,11 @@ def create_manufacture_stock_entry(items, warehouse, submit=False):
     return True
 
 
-def create_transfer_stock_entry(items, source_warehouse, target_warehouse):
+def create_transfer_stock_entry(items, source_warehouse, target_warehouse, crate_activity_summary_ref=None):
     item_code = items[0]["item_code"]
+    ref = f"{crate_activity_summary_ref}-{item_code}-transfer"
+    # if frappe.get_all("Stock Entry", filters={"crate_activity_summary": ref}):
+    #     return
     args = {
         "item_code": item_code,
         "qty": 1,
@@ -100,13 +111,14 @@ def create_transfer_stock_entry(items, source_warehouse, target_warehouse):
             "allow_zero_valuation_rate": 1,
         }
         doc.append("items", item)
+    doc.crate_activity_summary = ref
     doc.save()
     doc.submit()
     frappe.db.commit()
     return True
 
 
-def create_shg_stock_entries(items, warehouse, target_warehouse):
+def create_shg_stock_entries(items, warehouse, target_warehouse, crate_activity_summary_ref=None):
     # We first get the individual pops and their quantities
     sub_items = {}
     for row in items:
@@ -129,18 +141,18 @@ def create_shg_stock_entries(items, warehouse, target_warehouse):
     # The SHG stock entries are created in the following order:
     # 1. Consume the paste needed for the pops
     create_consumption_stock_entry(
-        sub_items, warehouse, use_multi_level_bom=False, submit=True
+        sub_items, warehouse, use_multi_level_bom=False, submit=True, crate_activity_summary_ref=crate_activity_summary_ref
     )
     # 2. Manufacture the pops
-    create_manufacture_stock_entry(sub_items, warehouse, submit=True)
+    create_manufacture_stock_entry(sub_items, warehouse, submit=True, crate_activity_summary_ref=crate_activity_summary_ref)
     # Consume the pops needed for the secondary boxes
     create_consumption_stock_entry(
-        items, warehouse, use_multi_level_bom=False, submit=True
+        items, warehouse, use_multi_level_bom=False, submit=True, crate_activity_summary_ref=crate_activity_summary_ref
     )
     # Manufacture the secondary boxes
-    create_manufacture_stock_entry(items, warehouse, submit=True)
+    create_manufacture_stock_entry(items, warehouse, submit=True, crate_activity_summary_ref=crate_activity_summary_ref)
     # Transfer the secondary boxes to the target warehouse
-    create_transfer_stock_entry(items, warehouse, target_warehouse)
+    create_transfer_stock_entry(items, warehouse, target_warehouse, crate_activity_summary_ref=crate_activity_summary_ref)
     return True
 
 
@@ -155,13 +167,13 @@ def procurement_submit_hook(crate_activity_summary_doc):
             "Warehouse", {"warehouse_name": supplier_id}, "name"
         )
         create_shg_stock_entries(
-            items, warehouse, crate_activity_summary_doc.source_warehouse
+            items, warehouse, crate_activity_summary_doc.source_warehousem, crate_activity_summary_ref=crate_activity_summary_doc.name
         )
     else:
         warehouse = crate_activity_summary_doc.source_warehouse
         items = json.loads(crate_activity_summary_doc.items)
-        create_consumption_stock_entry(items, warehouse)
-        create_manufacture_stock_entry(items, warehouse)
+        create_consumption_stock_entry(items, warehouse, crate_activity_summary_ref=crate_activity_summary_doc.name)
+        create_manufacture_stock_entry(items, warehouse, crate_activity_summary_ref=crate_activity_summary_doc.name)
 
 
 def transfer_out_submit_hook(crate_activity_summary_doc):
@@ -181,7 +193,7 @@ def transfer_out_submit_hook(crate_activity_summary_doc):
             frappe.throw(
                 f"Please configure Default In-Transit Warehouse for {source_warehouse}"
             )
-    create_transfer_stock_entry(items, source_warehouse, target_warehouse=transfer_to)
+    create_transfer_stock_entry(items, source_warehouse, target_warehouse=transfer_to, crate_activity_summary_ref=crate_activity_summary_doc.name)
 
 
 def transfer_in_submit_hook(crate_activity_summary_doc):
@@ -196,7 +208,7 @@ def transfer_in_submit_hook(crate_activity_summary_doc):
         )
     target_warehouse = crate_activity_summary_doc.target_warehouse
     create_transfer_stock_entry(
-        items, source_warehouse=transit_warehouse, target_warehouse=target_warehouse
+        items, source_warehouse=transit_warehouse, target_warehouse=target_warehouse, crate_activity_summary_ref=crate_activity_summary_doc.name
     )
 
 
