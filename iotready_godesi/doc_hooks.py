@@ -42,8 +42,8 @@ def create_consumption_stock_entry(
         else:
             doc.bom_no = bom[0]["name"]
         ref = f"{crate_activity_summary_ref}-{doc.bom_no}-consumption"
-        # if frappe.get_all("Stock Entry", filters={"crate_activity_summary": ref}):
-        #     continue
+        if frappe.get_all("Stock Entry", filters={"custom_crate_activity_summary": ref}):
+            continue
         doc.from_bom = True
         doc.use_multi_level_bom = use_multi_level_bom
         doc.fg_completed_qty = quantity
@@ -63,8 +63,8 @@ def create_manufacture_stock_entry(items, warehouse, submit=False, crate_activit
         if 'PM-' in item_code:
             continue
         ref = f"{crate_activity_summary_ref}-{item_code}-manufacture"
-        # if frappe.get_all("Stock Entry", filters={"crate_activity_summary": ref}):
-        #     continue
+        if frappe.get_all("Stock Entry", filters={"custom_crate_activity_summary": ref}):
+            continue
         args = {
             "item_code": item_code,
             "qty": row["qty"],
@@ -89,8 +89,8 @@ def create_manufacture_stock_entry(items, warehouse, submit=False, crate_activit
 def create_transfer_stock_entry(items, source_warehouse, target_warehouse, crate_activity_summary_ref=None):
     item_code = items[0]["item_code"]
     ref = f"{crate_activity_summary_ref}-{item_code}-transfer"
-    # if frappe.get_all("Stock Entry", filters={"crate_activity_summary": ref}):
-    #     return
+    if frappe.get_all("Stock Entry", filters={"custom_crate_activity_summary": ref}):
+        return
     args = {
         "item_code": item_code,
         "qty": 1,
@@ -172,8 +172,8 @@ def procurement_submit_hook(crate_activity_summary_doc):
     else:
         warehouse = crate_activity_summary_doc.source_warehouse
         items = json.loads(crate_activity_summary_doc.items)
-        create_consumption_stock_entry(items, warehouse, crate_activity_summary_ref=crate_activity_summary_doc.name)
-        create_manufacture_stock_entry(items, warehouse, crate_activity_summary_ref=crate_activity_summary_doc.name)
+        create_consumption_stock_entry(items, warehouse, submit=True, crate_activity_summary_ref=crate_activity_summary_doc.name)
+        create_manufacture_stock_entry(items, warehouse, submit=True, crate_activity_summary_ref=crate_activity_summary_doc.name)
 
 
 def transfer_out_submit_hook(crate_activity_summary_doc):
