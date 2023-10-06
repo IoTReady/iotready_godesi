@@ -26,7 +26,7 @@ def warehouse_before_save(doc, event=None):
 
 
 def create_consumption_stock_entry(
-    items, warehouse, use_multi_level_bom=True, submit=False, crate_activity_summary_ref=None
+    items, warehouse, use_multi_level_bom=False, submit=False, crate_activity_summary_ref=None
 ):
     for row in items:
         item_code = row["item_code"]
@@ -45,6 +45,8 @@ def create_consumption_stock_entry(
         if frappe.get_all("Stock Entry", filters={"custom_crate_activity_summary": ref}):
             continue
         doc.from_bom = True
+        item_doc = frappe.get_doc("Item", item_code)
+        #doc.use_multi_level_bom = use_multi_level_bom or item_doc.use_multi_level_bom
         doc.use_multi_level_bom = use_multi_level_bom
         doc.fg_completed_qty = quantity
         doc.from_warehouse = warehouse
@@ -167,7 +169,7 @@ def procurement_submit_hook(crate_activity_summary_doc):
             "Warehouse", {"warehouse_name": supplier_id}, "name"
         )
         create_shg_stock_entries(
-            items, warehouse, crate_activity_summary_doc.source_warehousem, crate_activity_summary_ref=crate_activity_summary_doc.name
+            items, warehouse, crate_activity_summary_doc.source_warehouse, crate_activity_summary_ref=crate_activity_summary_doc.name
         )
     else:
         warehouse = crate_activity_summary_doc.source_warehouse
