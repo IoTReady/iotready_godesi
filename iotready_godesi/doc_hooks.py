@@ -51,7 +51,7 @@ def create_consumption_stock_entry(
         doc.fg_completed_qty = quantity
         doc.from_warehouse = warehouse
         doc.get_items()
-        doc.crate_activity_summary = ref
+        doc.custom_crate_activity_summary = ref
         doc.save()
         if submit:
             doc.submit()
@@ -80,7 +80,7 @@ def create_manufacture_stock_entry(items, warehouse, submit=False, crate_activit
         doc = make_stock_entry(**args)
         doc.items[0].is_finished_item = 1
         doc.items[0].allow_zero_valuation_rate = 1
-        doc.crate_activity_summary = ref
+        doc.custom_crate_activity_summary = ref
         doc.save()
         if submit:
             doc.submit()
@@ -113,7 +113,7 @@ def create_transfer_stock_entry(items, source_warehouse, target_warehouse, crate
             "allow_zero_valuation_rate": 1,
         }
         doc.append("items", item)
-    doc.crate_activity_summary = ref
+    doc.custom_crate_activity_summary = ref
     doc.save()
     doc.submit()
     frappe.db.commit()
