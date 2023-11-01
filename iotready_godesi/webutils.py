@@ -1,8 +1,7 @@
 import frappe
 import json
 from datetime import datetime, timedelta
-from iotready_godesi import picking
-from iotready_godesi.validations import *
+from iotready_godesi import picking, validations, utils
 from iotready_warehouse_traceability_frappe import workflows
 from iotready_warehouse_traceability_frappe import utils as common_utils
 
@@ -16,6 +15,33 @@ def get_suppliers():
 def get_items():
     return frappe.get_list("Item", fields=["name", "item_name", "stock_uom"])
 
+
+def get_target_warehouses():
+    warehouse = utils.get_user_warehouse()
+    warehouse_doc = frappe.get_cached_doc("Warehouse", warehouse)
+    destination_warehouses = []
+    for row in warehouse_doc.destination_table:
+        destination_warehouses.append(
+            {
+                "warehouse_id": row.warehouse,
+                "warehouse_name": frappe.db.get_value(
+                    "Warehouse", row.warehouse, "warehouse_name"
+                ),
+            }
+        )
+    return destination_warehouses
+
+def get_vehicles():
+    vehicles = frappe.get_all(
+        "Vehicle",
+        fields=[
+            "license_plate",
+            "transporter",
+            "vehicle_type",
+            "vehicle_crate_capacity",
+        ],
+    )
+    return vehicles
 
 def crate_activities(crate_id) -> list[dict]:
     sql_query = """
@@ -102,11 +128,14 @@ def get_crate_summary(crates):
         summary["quantity"] += crate.get("grn_quantity")
     return summary
 
+
 def get_session_item_summary(session_id):
     return []
 
+
 def get_session_crate_summary(session_id, activity=None):
     return {}
+
 
 def get_crate_list_context(activity=None, include_completed=False):
     crates = get_crates(activity=activity, include_completed=include_completed)
@@ -129,8 +158,9 @@ def get_activity_context(activity: str):
     if activity == "Procurement":
         context["suppliers"] = get_suppliers()
         context["items"] = get_items()
-    # elif activity in ["Transfer Out", "Crate Tracking Out"]:
-    #     context["target_warehouses"] = get_target_warehouses()
+    elif activity in ["Transfer Out", "Crate Tracking Out"]:
+        context["target_warehouses"] = get_target_warehouses()
+        context["vehicles"] = get_vehicles()
     # elif activity in ["Material Request"]:
     #     context["open_material_requests"] = get_open_material_requests()
     # elif activity in ["Crate Splitting"]:
@@ -213,11 +243,153 @@ def record_event(**kwargs):
     return {"success": success, "message": message, "html": html}
 
 
+def create_crate_activity(
+    crate,
+    session_id,
+    activity,
+    source_warehouse=None,
+    linked_reference_id=None,
+    delete_drafts=True,
+):
+    crate_id = crate.get("crate_id")
+    if delete_drafts:
+        common_utils.delete_draft_crate_activities(crate_id)
+    doc = frappe.new_doc("Crate Activity")
+    doc.update(crate)
+    doc.status = "Draft"
+    doc.session_id = session_id
+    doc.activity = activity
+    doc.source_warehouse = source_warehouse
+    # Field names are different for historical reasons
+    doc.supplier_id = crate.get("supplier")
+    doc.grn_quantity = crate.get("quantity")
+    doc.crate_weight = crate.get("weight")
+    doc.linked_reference_id = linked_reference_id
+    if doc.activity in ["Delete", "Cycle Count"]:
+        doc.reference_id = "DLS" + frappe.generate_hash(length=10)
+        doc.status = "Completed"
+    doc.save()
+    frappe.db.commit()
+    return doc
+
+
+def procurement(crate: dict, activity: str):
+    """
+    Validates crate and adds to Purchase Receipt
+    """
+    source_warehouse = utils.get_user_warehouse()
+    crate["crate_id"] = (
+        crate["crate_id"].strip().encode("ascii", errors="ignore").decode()
+    )
+    crate_id = crate["crate_id"]
+    session_id = crate["session_id"]
+    item_code = crate["item_code"]
+    supplier = crate["supplier"]
+    validations.validate_item(item_code)
+    validations.validate_supplier(supplier)
+    validations.validate_crate_availability(crate_id)
+    validations.validate_procurement_quantity(
+        crate["quantity"], crate["weight"], item_code
+    )
+    create_crate_activity(
+        crate=crate,
+        session_id=session_id,
+        activity=activity,
+        source_warehouse=source_warehouse,
+    )
+    label = utils.generate_label(
+        warehouse_id=source_warehouse,
+        crate_id=crate_id,
+        item_code=item_code,
+        quantity=crate["quantity"],
+        weight=crate["weight"]
+    )
+    return {
+        "crate_id": crate_id,
+        "success": True,
+        "message": f"Crate Added.",
+        "label": label,
+        "allow_final_crate": False,
+    }
+
+def transfer_out(crate: dict, activity: str):
+    """
+    For each crate process the stock transfer out request.
+    """
+    crate["crate_id"] = (
+        crate["crate_id"].strip().encode("ascii", errors="ignore").decode()
+    )
+    crate_id = crate["crate_id"]
+    session_id = crate["session_id"]
+    source_warehouse = utils.get_user_warehouse()
+    target_warehouse = crate["target_warehouse"]
+    validations.validate_crate(crate_id)
+    validations.validate_crate_in_use(crate_id)
+    validations.validate_source_warehouse(crate_id, source_warehouse)
+    validations.validate_destination(source_warehouse, target_warehouse)
+    validations.validate_vehicle(crate["vehicle"])
+    validations.validate_not_existing_transfer_out(
+        crate_id=crate_id, activity=activity, source_warehouse=source_warehouse
+    )
+    create_crate_activity(
+        crate=crate,
+        session_id=session_id,
+        activity=activity,
+        source_warehouse=source_warehouse,
+    )
+    return {
+        "crate_id": crate_id,
+        "success": True,
+        "message": f"Transferred out to {target_warehouse}.",
+        "label": "",
+        "allow_final_crate": False,
+    }
+
+def transfer_in(crate: dict, activity: str):
+    """
+    For each crate process the stock transfer in request.
+    """
+    crate["crate_id"] = (
+        crate["crate_id"].strip().encode("ascii", errors="ignore").decode()
+    )
+    crate_id = crate["crate_id"]
+    session_id = crate["session_id"]
+    target_warehouse = utils.get_user_warehouse()
+    crate["target_warehouse"] = target_warehouse
+    validations.validate_crate(crate_id)
+    validations.validate_crate_in_use(crate_id)
+    source_warehouse = None
+    linked_reference_id, source_warehouse = validations.validate_submitted_transfer_out(
+        crate_id, target_warehouse
+    )
+    validations.validate_not_existing_transfer_in(crate_id, target_warehouse)
+    if crate.get("weight"):
+        # carton was weighed
+        # validate weight vs quantity here
+        validations.validate_transfer_in_quantity(crate)
+    # crate["target_warehouse"] = target_warehouse
+    # crate["source_warehouse"] = source_warehouse
+    # crate["linked_reference_id"] = linked_reference_id
+    create_crate_activity(
+        crate=crate,
+        session_id=crate["session_id"],
+        activity=activity,
+        source_warehouse=crate["source_warehouse"],
+        linked_reference_id=crate["linked_reference_id"],
+    )
+    return {
+        "crate_id": crate.get("crate_id"),
+        "success": True,
+        "message": f"Transferred In to {crate.get('target_warehouse')}.",
+        "label": "",
+        "allow_final_crate": False,
+    }
+
 
 allowed_activities = {
-    # "Procurement": procurement,
-    # "Transfer Out": transfer_out,
-    # "Transfer In": transfer_in,
+    "Procurement": procurement,
+    "Transfer Out": transfer_out,
+    "Transfer In": transfer_in,
     # "Bulk Transfer In": bulk_transfer_in,
     # "Delete": delete_crate,
     # "Cycle Count": cycle_count,
@@ -362,7 +534,7 @@ def record_session_events(crates: list, session_id: str, metadata: str = ""):
         session_context.pop("open_material_requests", None)
         crate_in.update(session_context)
         try:
-            validate_mandatory_fields(crate_in, activity)
+            validations.validate_mandatory_fields(crate_in, activity)
             crate_out = allowed_activities[activity](crate_in, activity)
             response["crates"].append(crate_out)
         except Exception as e:
@@ -388,7 +560,7 @@ def record_session_events(crates: list, session_id: str, metadata: str = ""):
         "session_id": session_id,
         "activity": activity,
         "crates": {},
-        "item_summary": get_session_item_summary(session_id), 
+        "item_summary": get_session_item_summary(session_id),
         "crate_summary": get_session_crate_summary(session_id, activity),
     }
     session_crates = get_crates(activity=activity)

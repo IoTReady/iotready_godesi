@@ -208,7 +208,7 @@ def maybe_create_crate(crate_id):
         doc.save()
 
 
-def validate_crate_availability(crate_id, item_code, supplier):
+def validate_crate_availability(crate_id, item_code=None, supplier=None):
     """
     Given a crate_id, runs a number of checks to see if the crate is available.
     """
