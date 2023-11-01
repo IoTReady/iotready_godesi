@@ -54,6 +54,12 @@ def record_events(crate: dict, activity: str):
     """
     return common_utils.record_events(crate, activity)
 
+@frappe.whitelist(allow_guest=False)
+def record_session_events(crates: list, session_id: str, metadata: str = None):
+    """
+    Called by app user to upload crate events.
+    """
+    return webutils.record_session_events(crates, session_id, metadata)
 
 @frappe.whitelist(allow_guest=False)
 def generate_new_crate():

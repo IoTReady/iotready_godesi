@@ -3,6 +3,19 @@ from iotready_godesi import utils
 from datetime import datetime
 
 
+def validate_mandatory_fields(crate, activity):
+    fields = {
+        "Procurement": ["crate_id", "item_code", "supplier", "quantity", "weight"],
+        "Transfer Out": ["crate_id", "target_warehouse", "vehicle"],
+        "Transfer In": ["crate_id"],
+        "Cycle Count": ["crate_id", "weight"],
+        "Crate Splitting": ["crate_id", "quantity", "weight", "parent_crate_id"],
+        "Identify": ["crate_id"],
+        "Delete": ["crate_id"],
+    }
+    for field in fields[activity]:
+        assert field in crate, f"{field} missing from request"
+
 def validate_item(item_code):
     assert frappe.db.exists("Item", item_code), f"Item {item_code} does not exist"
 

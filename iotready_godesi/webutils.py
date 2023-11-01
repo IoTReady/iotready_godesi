@@ -1,15 +1,21 @@
 import frappe
+import json
 from datetime import datetime, timedelta
 from iotready_godesi import picking
+from iotready_godesi.validations import *
 from iotready_warehouse_traceability_frappe import workflows
+from iotready_warehouse_traceability_frappe import utils as common_utils
 
 # IMPORTANT: DO NOT USE frappe.get_all in this module. Always use frappe.get_list - which respects user permissions.
+
 
 def get_suppliers():
     return frappe.get_list("Supplier", fields=["name", "supplier_name"])
 
+
 def get_items():
     return frappe.get_list("Item", fields=["name", "item_name", "stock_uom"])
+
 
 def crate_activities(crate_id) -> list[dict]:
     sql_query = """
@@ -26,6 +32,7 @@ def crate_activities(crate_id) -> list[dict]:
     """
     activities = frappe.db.sql(sql_query, (crate_id, crate_id), as_dict=True)
     return activities
+
 
 def get_crate_details(crate_id):
     activities = crate_activities(crate_id)
@@ -67,14 +74,15 @@ def get_crates(activity=None, supplier_id=None, include_completed=False):
         sql += " AND supplier_id = %(supplier_id)s"
 
     sql += " ORDER BY modified DESC"
-        
+
     crate_ids = frappe.db.sql(sql, filters, as_dict=True)
     crate_details = []
     for row in crate_ids:
-        d = get_crate_details(row['crate_id'])
+        d = get_crate_details(row["crate_id"])
         if d:
             crate_details.append(d)
     return crate_details
+
 
 def get_item_summary(crates):
     summary = {}
@@ -86,6 +94,7 @@ def get_item_summary(crates):
         summary[item_code]["quantity"] += crate.get("grn_quantity")
     return list(summary.values())
 
+
 def get_crate_summary(crates):
     summary = {"count": 0, "quantity": 0}
     for crate in crates:
@@ -93,14 +102,27 @@ def get_crate_summary(crates):
         summary["quantity"] += crate.get("grn_quantity")
     return summary
 
+def get_session_item_summary(session_id):
+    return []
+
+def get_session_crate_summary(session_id, activity=None):
+    return {}
+
 def get_crate_list_context(activity=None, include_completed=False):
     crates = get_crates(activity=activity, include_completed=include_completed)
     item_summary = get_item_summary(crates)
     crate_summary = get_crate_summary(crates)
-    context = {"crates": crates, "item_summary": item_summary, "crate_summary": crate_summary, "show_crate_summary": False, "show_item_summary": True}
+    context = {
+        "crates": crates,
+        "item_summary": item_summary,
+        "crate_summary": crate_summary,
+        "show_crate_summary": False,
+        "show_item_summary": True,
+    }
     if activity in ["Procurement"]:
         context["show_crate_summary"] = False
     return context
+
 
 def get_activity_context(activity: str):
     context = {}
@@ -122,6 +144,7 @@ def get_session_summary(session_id: str):
     if session_context:
         activity = session_context.get("activity")
     return get_crate_list_context(activity)
+
 
 def record_event(**kwargs):
     crate_id = kwargs.get("crate_id")
@@ -159,7 +182,12 @@ def record_event(**kwargs):
             elif not kwargs.get("package_id"):
                 # Get package IDs from activity table
                 package_ids = picking.get_package_ids(kwargs.get("picklist_id"))
-                return {"success": False, "message": "Need package ID for partial quantities.", "missing_package_id": True, "package_ids": package_ids}
+                return {
+                    "success": False,
+                    "message": "Need package ID for partial quantities.",
+                    "missing_package_id": True,
+                    "package_ids": package_ids,
+                }
             else:
                 doc.package_id = kwargs.get("package_id")
                 if doc.package_id == "New":
@@ -177,7 +205,237 @@ def record_event(**kwargs):
         frappe.db.commit()
         message = "Event recorded successfully."
         success = True
-        html = frappe.render_template("templates/includes/craterow.html", {"crate": get_crate_details(crate_id)})
+        html = frappe.render_template(
+            "templates/includes/craterow.html", {"crate": get_crate_details(crate_id)}
+        )
     else:
         html = "Crate ID and activity are both necessary."
     return {"success": success, "message": message, "html": html}
+
+
+
+allowed_activities = {
+    # "Procurement": procurement,
+    # "Transfer Out": transfer_out,
+    # "Transfer In": transfer_in,
+    # "Bulk Transfer In": bulk_transfer_in,
+    # "Delete": delete_crate,
+    # "Cycle Count": cycle_count,
+    # "Crate Splitting": crate_splitting,
+    # "Identify": identify,
+    # "Release": release,
+    # "Picking": picking.pick,
+    # "Crate Tracking Out": crate_tracking_out,
+    # "Manual Picking": manual_picking,
+}
+
+activity_requirements = {
+    "Procurement": {
+        "need_weight": True,
+        "needs_submit": False,
+        "label": "Procurement",
+        "hidden": False,
+        "allow_multiple_api_calls": True,
+    },
+    "Transfer Out": {
+        "need_weight": False,
+        "needs_submit": False,
+        "label": "Transfer Out",
+        "hidden": False,
+        "allow_multiple_api_calls": False,
+    },
+    "Transfer In": {
+        "need_weight": False,
+        "needs_submit": False,
+        "label": "Transfer In",
+        "hidden": False,
+        "allow_multiple_api_calls": False,
+    },
+    "Bulk Transfer In": {
+        "need_weight": True,
+        "needs_submit": True,
+        "label": "Bulk TI",
+        "hidden": False,
+        "allow_multiple_api_calls": False,
+    },
+    "Delete": {
+        "need_weight": False,
+        "needs_submit": False,
+        "label": "Delete",
+        "hidden": True,
+        "allow_multiple_api_calls": False,
+    },
+    "Cycle Count": {
+        "need_weight": True,
+        "needs_submit": False,
+        "label": "Cycle Count",
+        "hidden": False,
+        "allow_multiple_api_calls": True,
+    },
+    "Crate Splitting": {
+        "need_weight": True,
+        "needs_submit": False,
+        "label": "Crate Splitting",
+        "hidden": False,
+        "allow_multiple_api_calls": False,
+    },
+    "Identify": {
+        "need_weight": False,
+        "needs_submit": False,
+        "label": "Identify",
+        "hidden": False,
+        "allow_multiple_api_calls": False,
+    },
+    "Release": {
+        "need_weight": False,
+        "needs_submit": False,
+        "label": "Release",
+        "hidden": True,
+        "allow_multiple_api_calls": False,
+    },
+    "Material Request": {
+        "need_weight": False,
+        "needs_submit": False,
+        "label": "Picking",
+        "hidden": False,
+        "allow_multiple_api_calls": False,
+    },
+    "Crate Tracking Out": {
+        "need_weight": False,
+        "needs_submit": False,
+        "label": "Crate TO",
+        "hidden": False,
+        "allow_multiple_api_calls": False,
+    },
+    "Manual Picking": {
+        "need_weight": True,
+        "needs_submit": False,
+        "label": "Manual Picking",
+        "hidden": True,
+        "allow_multiple_api_calls": False,
+    },
+}
+
+
+def log_ingress(crates, activity, result, creation=None):
+    pass
+    # try:
+    #     log = frappe.new_doc("Ingress Log")
+    #     log.name = frappe.generate_hash(length=10)
+    #     if creation:
+    #         log.creation = creation
+    #     else:
+    #         log.creation = datetime.now() + timedelta(hours=5, minutes=30)
+    #     log.modified = datetime.now() + timedelta(hours=5, minutes=30)
+    #     log.owner = frappe.session.user
+    #     log.modified_by = frappe.session.user
+    #     log.activity = activity
+    #     # log.crate = json.dumps(crate)
+    #     log.result = json.dumps(result)
+    #     if len(crates) > 0:
+    #         log.crate_id = crates[0].get("crate_id")
+    #     log.raw_payload = json.dumps({"crates": crates, "activity": activity})
+    #     db.deferred_insert(log)
+    # except Exception as e:
+    #     print("Log Ingress", str(e))
+
+
+def record_session_events(crates: list, session_id: str, metadata: str = ""):
+    creation = datetime.now() + timedelta(hours=5, minutes=30)
+    response = {
+        "session_id": session_id,
+        "ble": {
+            workflows.SCAN_CHAR: [],  # scan char
+            workflows.WEIGHT_CHAR: [],  # weight char
+            workflows.DISPLAY_CHAR: [],  # display char
+            workflows.LED_CHAR: ["20,0,0"],  # led char
+        },
+        "summary": json.dumps({}),
+        "form": json.dumps({"refresh": False}),
+        "crates": [],
+        "allow_edit_quantity": False,
+    }
+    if metadata and isinstance(metadata, str):
+        metadata = json.loads(metadata)
+        if isinstance(metadata, dict):
+            workflows.update_activity_session(session_id, metadata)
+    session_context = workflows.get_activity_session(session_id)
+    if not session_context:
+        for crate_in in crates:
+            crate_out = {
+                "success": False,
+                "message": "Session Expired",
+                "crate_id": crate_in.get("crate_id"),
+                "allow_final_crate": False,
+                "label": "",
+            }
+            response["crates"].append(crate_out)
+        return response
+    session_context.pop("crates", None)
+    session_context.pop("suppliers", None)
+    session_context.pop("items", None)
+    session_context.pop("open_material_requests", None)
+    activity = session_context.get("activity")
+    response.update(activity_requirements[activity])
+    for crate_in in crates:
+        session_context = workflows.get_activity_session(session_id)
+        session_context.pop("crates", None)
+        session_context.pop("suppliers", None)
+        session_context.pop("items", None)
+        session_context.pop("open_material_requests", None)
+        crate_in.update(session_context)
+        try:
+            validate_mandatory_fields(crate_in, activity)
+            crate_out = allowed_activities[activity](crate_in, activity)
+            response["crates"].append(crate_out)
+        except Exception as e:
+            crate_out = {
+                "success": False,
+                "message": str(e),
+                "crate_id": crate_in.get("crate_id"),
+                "allow_final_crate": False,
+                "label": "",
+            }
+            if str(e) == "Quantity Under Limit":
+                response["ble"][workflows.LED_CHAR] = ["25,10,0"]
+                crate_out["allow_final_crate"] = True
+            response["crates"].append(crate_out)
+    session_context = workflows.get_activity_session(session_id)
+    if activity in ["Crate Splitting", "Material Request"]:
+        response["form"] = json.dumps({"refresh": True})
+    if activity in ["Crate Splitting"]:
+        response["needs_submit"] = True
+        if session_context.get("stock_uom") and session_context["stock_uom"] == "Nos":
+            response["allow_edit_quantity"] = True
+    payload = {
+        "session_id": session_id,
+        "activity": activity,
+        "crates": {},
+        "item_summary": get_session_item_summary(session_id), 
+        "crate_summary": get_session_crate_summary(session_id, activity),
+    }
+    session_crates = get_crates(activity=activity)
+    crate_count = len(session_crates)
+    if len(session_crates) > 0:
+        last_crate_id = crates[-1].get("crate_id")
+        if last_crate_id and last_crate_id in session_crates:
+            last_crate = get_crate_details(last_crate_id)
+            if all(crate_out["success"] for crate_out in response["crates"]):
+                if activity not in ["Bulk Transfer In"]:
+                    response["ble"][workflows.WEIGHT_CHAR] = [
+                        f"{last_crate.get('crate_weight', 0)}KG | {crate_count} Crates"
+                    ]
+    for crate_in in crates:
+        crate_id = crate_in.get("crate_id")
+        if crate_id and crate_id in session_crates:
+            payload["crates"][crate_id] = get_crate_details(crate_id)
+    if activity in ["Crate Splitting"] and session_context:
+        parent_crate_id = session_context.get("parent_crate_id")
+        if parent_crate_id and parent_crate_id in session_crates:
+            payload["crates"][parent_crate_id] = get_crate_details(parent_crate_id)
+    response["summary"] = json.dumps(payload, default=common_utils.date_json_serial)
+    if all(crate_out["success"] for crate_out in response["crates"]):
+        response["ble"][workflows.LED_CHAR] = ["0,20,0"]
+        response["ble"][workflows.SCAN_CHAR] = [""]
+    log_ingress(crates, activity, response, creation)
+    return response
