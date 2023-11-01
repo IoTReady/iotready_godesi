@@ -1,0 +1,46 @@
+{% extends "templates/custom_base.html" %}
+
+{% block page_content %}
+<div id="summary-root">
+    <activity-summary :session_id="session_id" :activity="activity" :crate_summary="crate_summary" :item_summary="item_summary"
+        :crates="crates" @delete-crate="deleteCrate" @refresh="refresh" ></activity-summary>
+</div>
+
+<script>
+    let app = null;
+    frappe.ready(() => {
+        frappe.require('{{ bundled_asset("bb_fnv_frappe-summary.bundle.js")}}', () => {
+            let context = JSON.parse('{{ js_context }}');
+            app = constructSummaryView(context);
+        });
+    })
+    const refresh = () => app.refresh();
+    const update = (data) => app.update(data);
+    const insertCrate = (crate) => {
+        // If crate is a string, run JSON.parse
+        if (typeof crate == "string") {
+            crate = JSON.parse(crate);
+        }
+        return app.insertCrate(crate);
+    };
+    const deleteCrate = (crate_id) => {
+      return app.deleteCrate(crate_id);
+    }
+    const updateCrateSummary = (crate_summary) => {
+        // If crate_summary is a string, run JSON.parse
+        if (typeof crate_summary == "string") {
+            crate_summary = JSON.parse(crate_summary);
+        }
+        return app.updateCrateSummary(crate_summary);
+    };
+    const updateItemSummary = (item_summary) => {
+        // If item_summary is a string, run JSON.parse
+        if (typeof item_summary == "string") {
+            item_summary = JSON.parse(item_summary);
+        }
+        return app.updateItemSummary(item_summary);
+    };
+</script>
+
+
+{% endblock %}

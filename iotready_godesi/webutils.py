@@ -1,6 +1,7 @@
 import frappe
 from datetime import datetime, timedelta
 from iotready_godesi import picking
+from iotready_warehouse_traceability_frappe import workflows
 
 # IMPORTANT: DO NOT USE frappe.get_all in this module. Always use frappe.get_list - which respects user permissions.
 
@@ -83,7 +84,7 @@ def get_item_summary(crates):
             summary[item_code] = {"item_code": item_code, "count": 0, "quantity": 0}
         summary[item_code]["count"] += 1
         summary[item_code]["quantity"] += crate.get("grn_quantity")
-    return summary.values()
+    return list(summary.values())
 
 def get_crate_summary(crates):
     summary = {"count": 0, "quantity": 0}
@@ -101,6 +102,26 @@ def get_crate_list_context(activity=None, include_completed=False):
         context["show_crate_summary"] = False
     return context
 
+def get_activity_context(activity: str):
+    context = {}
+    if activity == "Procurement":
+        context["suppliers"] = get_suppliers()
+        context["items"] = get_items()
+    # elif activity in ["Transfer Out", "Crate Tracking Out"]:
+    #     context["target_warehouses"] = get_target_warehouses()
+    # elif activity in ["Material Request"]:
+    #     context["open_material_requests"] = get_open_material_requests()
+    # elif activity in ["Crate Splitting"]:
+    #     context["open_material_requests"] = get_partial_material_requests()
+    return context
+
+
+def get_session_summary(session_id: str):
+    activity = None
+    session_context = workflows.get_activity_session(session_id)
+    if session_context:
+        activity = session_context.get("activity")
+    return get_crate_list_context(activity)
 
 def record_event(**kwargs):
     crate_id = kwargs.get("crate_id")
