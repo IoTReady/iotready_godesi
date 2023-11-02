@@ -489,7 +489,7 @@ activity_requirements = {
 }
 
 
-def record_session_events(crates: list, session_id: str, metadata: str = ""):
+def record_session_events(crates: list, session_id: str, metadata: str|None = ""):
     creation = datetime.now() + timedelta(hours=5, minutes=30)
     response = {
         "session_id": session_id,

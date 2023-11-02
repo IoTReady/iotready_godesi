@@ -31,14 +31,16 @@
             {{ o.warehouse_name }}
           </option>
         </select>
+        <select v-model="vehicle" id="vehicle" class="form-control" data-metadata="1" required>
+          <option value="">Select Vehicle</option>
+          <option v-for="o in vehicles" :key="o.license_plate" :value="o.license_plate">
+            {{ o.license_plate }} ({{o.transporter}})
+          </option>
+        </select>
       </div>
 
       <!-- Transfer In -->
       <div class="form-group col mb-1" v-if="activity === 'Transfer In'">
-        <select v-model="need_label" id="need_label" class="form-control" data-metadata="1" required>
-          <option value="0">Label Not Needed</option>
-          <option value="1">Label Needed</option>
-        </select>
       </div>
 
       <!-- Material Request -->

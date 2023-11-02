@@ -2,7 +2,7 @@ import frappe
 from iotready_godesi import picking, webutils, utils
 from iotready_warehouse_traceability_frappe import utils as common_utils
 from iotready_warehouse_traceability_frappe import workflows
-
+from iotready_firebase import admin
 
 @frappe.whitelist()
 def get_picklists():
@@ -55,7 +55,7 @@ def record_events(crate: dict, activity: str):
     return common_utils.record_events(crate, activity)
 
 @frappe.whitelist(allow_guest=False)
-def record_session_events(crates: list, session_id: str, metadata: str = None):
+def record_session_events(crates: list, session_id: str, metadata: str|None = None):
     """
     Called by app user to upload crate events.
     """
@@ -84,3 +84,32 @@ def update_activity_session(session_id: str, context: str):
 @frappe.whitelist(allow_guest=False)
 def get_session_context(session_id: str):
     return workflows.get_activity_session(session_id)
+
+
+# Firebase Integration
+def get_id_token():
+    id_token = frappe.request.headers.get("Authorization")
+    if id_token:
+        return id_token.split("Bearer ")[1]
+    return None
+
+
+def get_user_from_id_token():
+    id_token = get_id_token()
+    return admin.get_frappe_user_from_id_token(id_token)
+
+
+@frappe.whitelist(allow_guest=True)
+def login_with_firebase_token():
+    id_token = get_id_token()
+    if not id_token:
+        return None
+
+    return admin.log_into_frappe_with_id_token(id_token)
+
+
+@frappe.whitelist(allow_guest=True)
+def get_configuration_with_firebase_token():
+    login_with_firebase_token()
+    return get_configuration()
+
