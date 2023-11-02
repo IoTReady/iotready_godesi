@@ -44,7 +44,7 @@ def get_configuration():
     """
     Called by app user to retrieve warehouse configuration.
     """
-    return utils.get_configuration()
+    return webutils.get_configuration()
 
 
 @frappe.whitelist(allow_guest=False)

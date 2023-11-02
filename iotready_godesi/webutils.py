@@ -488,6 +488,33 @@ activity_requirements = {
     },
 }
 
+def get_configuration():
+    """
+    Called by app user to retrieve warehouse configuration.
+    CHANGES
+    01-06-2023
+        - Removed material requests. These have their endpoint now.
+    28-06-2023
+        - Removed suppliers, items and destinations. No longer needed.
+    """
+    warehouse = utils.get_user_warehouse()
+    warehouse_doc = frappe.get_doc("Warehouse", warehouse)
+    payload = {
+        "email": frappe.session.user,
+        "full_name": frappe.db.get_value("User", frappe.session.user, "full_name"),
+        "crate_weight": warehouse_doc.crate_weight,
+        "warehouse": warehouse,
+        "warehouse_name": warehouse_doc.warehouse_name,
+        "roles": [
+            role
+            for role in frappe.get_roles()
+            if role not in ["All", "Guest", "System Manager"]
+        ],
+        "crate_label_template": warehouse_doc.crate_label_template,
+        "allowed_activities": list(allowed_activities.keys()),
+        "activity_requirements": activity_requirements,
+    }
+    return payload
 
 def record_session_events(crates: list, session_id: str, metadata: str|None = ""):
     creation = datetime.now() + timedelta(hours=5, minutes=30)
