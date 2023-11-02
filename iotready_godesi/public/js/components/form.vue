@@ -76,10 +76,12 @@ export default {
     activity: String,
     suppliers: Array,
     items: Array,
+    vehicles: Array,
     open_material_requests: Array,
     target_warehouses: Array,
     selected_supplier: String,
     selected_item_code: String,
+    selected_vehicle: String,
     selected_target_warehouse: String,
     selected_need_label: Number,
     selected_picking_flow: String,
@@ -93,6 +95,7 @@ export default {
     return {
       supplier: "",
       item_code: "",
+      vehicle: "",
       target_warehouse: "",
       need_label: 0,
       dropdown_supplier: null,
@@ -160,6 +163,7 @@ export default {
       const metadata = {
         supplier: this.supplier,
         item_code: this.item_code,
+        vehicle: this.vehicle,
         target_warehouse: this.target_warehouse,
         need_label: this.need_label,
       };
@@ -242,6 +246,9 @@ export default {
     target_warehouse() {
       this.update_session_context();
     },
+    vehicle() {
+      this.update_session_context();
+    },
     need_label() {
       this.update_session_context();
     },
@@ -271,12 +278,16 @@ export default {
     selected_supplier() {
       this.supplier = this.selected_supplier;
       this.dropdown_supplier = this.suppliers.find((supplier) => supplier.name === this.supplier);
+    },
+    selected_vehicle() {
+      this.vehicle = this.selected_vehicle;
     }
   },
   mounted() {
     // console.log("mounted", this.selected_supplier, this.selected_item_code, this.selected_target_warehouse, this.selected_need_label);
     this.supplier = this.selected_supplier;
     this.item_code = this.selected_item_code;
+    this.vehicle = this.selected_vehicle;
     this.target_warehouse = this.selected_target_warehouse;
     this.need_label = this.selected_need_label || 0;
     this.dropdown_item = this.items.find((item) => item.name === this.item_code);

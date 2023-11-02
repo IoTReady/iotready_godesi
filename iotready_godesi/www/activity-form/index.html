@@ -3,9 +3,9 @@
 {% block page_content %}
 
 <div id="form-root">
-    <activity-form :session_id="session_id" :activity="activity" :refresh="refresh" :update-metadata="updateMetadata" :suppliers="suppliers" :items="items"
+    <activity-form :session_id="session_id" :activity="activity" :refresh="refresh" :update-metadata="updateMetadata" :suppliers="suppliers" :items="items" :vehicles="vehicles"
         :target_warehouses="target_warehouses" :open_material_requests="open_material_requests"
-        :selected_target_warehouse="target_warehouse" :selected_supplier="supplier" :selected_item_code="item_code" :selected_need_label="0"
+        :selected_target_warehouse="target_warehouse" :selected_supplier="supplier" :selected_item_code="item_code" :selected_need_label="0" :selected_vehicle="vehicle"
         :selected_material_request="material_request" :selected_picking_flow="picking_flow" :selected_is_manual_picking="is_manual_picking" :parent_crate_id="parent_crate_id"></activity-form>
 </div>
 
