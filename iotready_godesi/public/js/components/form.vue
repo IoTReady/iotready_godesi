@@ -18,6 +18,9 @@
             <template slot="singleLabel" slot-scope="{ option }">{{ option.item_name }} ({{ option.name }})</template>
           </multiselect>
         </div>
+        <div class="form-group mb-1">
+          <button class="btn btn-small btn-primary" @click="generate_new_crate">Generate New Crate</button>
+        </div>
       </div>
 
       <!-- Transfer Out -->
@@ -122,6 +125,31 @@ export default {
       if (key in this.$data) {
         this[key] = value;
       }
+    },
+    generate_new_crate: function () {
+      frappe.call({
+        method: "iotready_godesi.api.generate_new_crate",
+        type: "GET",
+        args: {
+        },
+        callback: (r) => {
+          //console.log(r);
+          if (r.exc) {
+            window.location.reload();
+          } else if (r.message && r.message.message) {
+            console.log(r.message.message);
+            if (window.AndroidBridge) {
+              AndroidBridge.setCrateId(r.message.message);
+            }
+          }
+        },
+        freeze: true,
+        freeze_message: "Please wait...",
+        async: true,
+      }).catch((e) => {
+        console.error(e);
+        window.location.reload();
+      });
     },
     update_session_context: function (data) {
       if (!this.done_mounting) {
