@@ -588,7 +588,6 @@ def record_session_events(crates: list, session_id: str, metadata: str|None = ""
         "crates": [],
         "allow_edit_quantity": False,
     }
-    print("metadata", metadata)
     if metadata and isinstance(metadata, str):
         metadata = json.loads(metadata)
         if isinstance(metadata, dict):
