@@ -16,6 +16,7 @@ def validate_mandatory_fields(crate, activity):
     for field in fields[activity]:
         assert field in crate, f"{field} missing from request"
 
+
 def validate_item(item_code):
     assert frappe.db.exists("Item", item_code), f"Item {item_code} does not exist"
 
@@ -118,7 +119,7 @@ def validate_transfer_in_quantity(crate):
     # Two ways to validate:
     # 1. Compare to last_known_weight (most likely from Transfer Out)
     last_known_weight = crate_doc.last_known_weight
-    #Maybe add a tolerance as the weight is unlikely to be exactly the same as last_known_weight
+    # Maybe add a tolerance as the weight is unlikely to be exactly the same as last_known_weight
     tolerance = min(item.lower_tolerance, item.upper_tolerance)
     lower_limit = last_known_weight * (1 - tolerance / 100)
     upper_limit = last_known_weight * (1 + tolerance / 100)
@@ -129,15 +130,15 @@ def validate_transfer_in_quantity(crate):
 
     # 2. Compare to expected weight as determined from quantity
     # This is the same as the procurement validation
-    #quantity = crate_doc.last_known_grn_quantity
-    #expected_weight = (
+    # quantity = crate_doc.last_known_grn_quantity
+    # expected_weight = (
     #    item.secondary_box_weight * quantity + item.tertiary_packaging_weight
-    #)
-    #lower_limit = expected_weight * (1 - item.lower_tolerance / 100)
-    #upper_limit = expected_weight * (1 + item.upper_tolerance / 100)
-    #if crate_weight < lower_limit:
+    # )
+    # lower_limit = expected_weight * (1 - item.lower_tolerance / 100)
+    # upper_limit = expected_weight * (1 + item.upper_tolerance / 100)
+    # if crate_weight < lower_limit:
     #    raise Exception("Actual weight below expected weight.")
-    #elif crate_weight > upper_limit:
+    # elif crate_weight > upper_limit:
     #    raise Exception("Actual weight above expected weight.")
 
 
@@ -173,6 +174,32 @@ def validate_submitted_transfer_out(crate_id, target_warehouse):
     done = frappe.get_all("Crate Activity", filters=filters, fields=["crate_id"])
     done = set([row["crate_id"] for row in done])
     return list(todo.difference(done)), len(todo)
+
+
+def validate_submitted_transfer_out_v2(crate_id, target_warehouse):
+    crate_doc = frappe.get_doc("Crate", crate_id)
+    procurement_timestamp = crate_doc.procurement_timestamp
+    result = frappe.db.sql(
+        """
+        SELECT reference_id, source_warehouse 
+        FROM `tabCrate Activity`
+        WHERE crate_id = %s
+        AND target_warehouse = %s
+        AND activity = 'Transfer Out'
+        AND status = 'Completed'
+        AND modified > %s
+        LIMIT 1;
+    """,
+        (crate_id, target_warehouse, procurement_timestamp),
+    )
+
+    if not result:
+        frappe.throw("No matching Transfer Out found.")
+
+    to_reference_id = result[0][0]
+    source_warehouse = result[0][1]
+
+    return to_reference_id, source_warehouse
 
 
 def validate_not_existing_transfer_in(crate_id, target_warehouse):
@@ -242,7 +269,7 @@ def procurement_event_hook(crate, activity):
         crate_id=crate_id,
         item_code=item_code,
         quantity=quantity,
-        weight=crate_weight
+        weight=crate_weight,
     )
     return crate, {"label": label}
 
@@ -279,7 +306,9 @@ def transfer_in_event_hook(crate: dict, activity: str):
     target_warehouse = utils.get_user_warehouse()
     validate_crate(crate_id)
     validate_crate_in_use(crate_id)
-    all_crates, total_crates = validate_submitted_transfer_out(crate_id, target_warehouse)
+    all_crates, total_crates = validate_submitted_transfer_out(
+        crate_id, target_warehouse
+    )
     validate_not_existing_transfer_in(crate_id, target_warehouse)
     if crate.get("weight"):
         # carton was weighed

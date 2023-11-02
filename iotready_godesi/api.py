@@ -71,7 +71,7 @@ def generate_new_crate():
 
 @frappe.whitelist(allow_guest=False)
 def get_new_activity_session(activity: str):
-    context = webutils.get_activity_context(activity)
+    context = webutils.activity_requirements[activity]
     context["session_id"] = workflows.get_new_activity_session(activity)
     return context
 

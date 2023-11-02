@@ -53,11 +53,11 @@
             <td class="p-1 fixed-width-count">{{ row.count }}</td>
             <td class="p-1 fixed-width-grn" v-if="transferInActivities.includes(activity)">
               {{ row.quantity }}/{{ row.expected_quantity }}
-              {{ row.stock_uom === 'KG' ? 'KG' : (row.stock_uom === 'Nos' ? 'Pcs' : '') }}
+              {{ row.stock_uom === 'Kg' ? 'KG' : (row.stock_uom === 'Nos' ? 'Pcs' : '') }}
             </td>
             <td class="p-1 fixed-width-grn" v-else>
               {{ row.quantity }}
-              {{ row.stock_uom === 'KG' ? 'KG' : (row.stock_uom === 'Nos' ? 'Pcs' : '') }}
+              {{ row.stock_uom === 'Kg' ? 'KG' : (row.stock_uom === 'Nos' ? 'Pcs' : '') }}
             </td>
             <td class="p-1 fixed-width-grn" scope="col" v-if="transferInActivities.includes(activity)">{{ row.weight }}/{{ row.expected_weight }}KG</td>
             <td class="p-1 fixed-width-grn" scope="col" v-else>{{ row.weight }}KG</td>
@@ -65,7 +65,6 @@
         </tbody>
       </table>
     </div>
-
     <div ref="scrollableContent" style="flex-grow: 1; overflow: auto; margin:0px; padding:0px;">
       <ul class="list-group scroller">
         <div class="card m-0"
@@ -73,12 +72,12 @@
           <div class="card-body small-text" v-if="item" :key="item.crate_id">
             <div class="d-flex justify-content-between align-items-baseline">
               <h4 class="mb-0 flex-grow-1 mr-0 mt-0">{{ item.crate_id }}</h4>
-              <span v-if="item.stock_uom">{{ item.grn_quantity }}</span><span v-if="item.stock_uom === 'KG'">&nbsp;
-                KG</span><span v-if="item.stock_uom === 'Nos'">&nbsp;Pcs</span>
+              <span v-if="item.stock_uom">{{ item.grn_quantity }}</span><span v-if="item.stock_uom === 'Kg'">&nbsp;
+                KG</span><span v-else-if="item.stock_uom === 'Nos'">&nbsp;Pcs</span><span v-else>{{item.stock_uom}}</span>
             </div>
             <div class="d-flex justify-content-between align-items-center">
-              <p class="mb-0" v-if="item.item_name && item.supplier_name">
-                {{ item.item_name }} procured at {{ item.procurement_warehouse_name }} from {{ item.supplier_name }} on
+              <p class="mb-0" v-if="item.item_code && item.supplier_id">
+                {{ item.item_code}} procured at {{ item.procurement_warehouse_name }} from {{ item.supplier_id }} on
                 {{
                   item.procurement_timestamp ? item.procurement_timestamp.split('.')[0] : ''
                 }}

@@ -20,7 +20,7 @@ window.constructSummaryView = (context) => new Vue({
     },
     refresh: function() {
       frappe.call({
-        method: "bb_fnv_frappe.api_v2.get_session_summary",
+        method: "iotready_godesi.api.get_session_summary",
         args: {
           session_id: context.session_id,
         },

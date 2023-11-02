@@ -141,7 +141,7 @@ export default {
       }
       app.updateMetadata(metadata);
       frappe.call({
-        method: "bb_fnv_frappe.api_v2.update_activity_session",
+        method: "iotready_godesi.api.update_activity_session",
         type: "POST",
         args: {
           session_id: this.session_id,
