@@ -56,6 +56,7 @@
             {{ o }}
           </option>
         </select>
+        <button class="btn btn-small btn-primary" @click="complete_picking" v-if="picklist_id">Complete Picking</button>
       </div>
 
       <!-- Transfer In -->
@@ -99,7 +100,7 @@ export default {
     open_material_requests: Array,
     target_warehouses: Array,
     picklists: Array,
-    package_ids: Array,
+    package_ids: Object,
     selected_supplier: String,
     selected_item_code: String,
     selected_vehicle: String,
@@ -192,34 +193,32 @@ export default {
           picklist_id: this.picklist_id
         },
         callback: (r) => {
+          console.log("is_picking_complete", r)
           if (r.exc) {
             frappe.throw(r.exc);
           } else {
+            let note = "";
             if (!r.message) {
-              const note = window.prompt("Please explain why the pick list is being completed without fulfilling all items.");
-              console.log("note", note);
-              if (note) {
-                frappe.call({
-                  method: "iotready_godesi.api.mark_picking_as_complete",
-                  type: "POST",
-                  args: {
-                    picklist_id: this.picklist_id,
-                    note
-                  },
-                  callback: (r) => {
-                    if (r.exc) {
-                      frappe.throw(r.exc);
-                    } else {
-                      window.location.reload();
-                    }
-                  },
-                  freeze: true,
-                  freeze_message: "Please wait...",
-                  async: true,
-                });
-              }
+              note = window.prompt("Please explain why the pick list is being completed without fulfilling all items.");
             }
-
+            frappe.call({
+              method: "iotready_godesi.api.mark_picking_as_complete",
+              type: "POST",
+              args: {
+                picklist_id: this.picklist_id,
+                note
+              },
+              callback: (r) => {
+                if (r.exc) {
+                  frappe.throw(r.exc);
+                } else {
+                  window.location.reload();
+                }
+              },
+              freeze: true,
+              freeze_message: "Please wait...",
+              async: true,
+            });
           }
         },
         freeze: true,

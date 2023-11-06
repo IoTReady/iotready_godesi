@@ -31,7 +31,6 @@ def get_context(context):
         frappe.local.flags.redirect_location = "/invalid_session"
         raise frappe.Redirect
     activity_context = webutils.get_activity_context(activity)
-    print("activity_context", activity_context)
     session_context.update(activity_context)
     context.session_id = session_id
     context.js_context = json.dumps(session_context, default=utils.date_json_serial)

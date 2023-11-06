@@ -14,7 +14,6 @@
     frappe.ready(() => {
         frappe.require('{{ bundled_asset("godesi-form.bundle.js")}}', () => {
             let context = JSON.parse('{{ js_context }}');
-            console.log("context", context)
             app = constructFormView(context);
         });
     })

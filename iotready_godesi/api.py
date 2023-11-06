@@ -4,29 +4,12 @@ from iotready_warehouse_traceability_frappe import utils as common_utils
 from iotready_warehouse_traceability_frappe import workflows
 from iotready_firebase import admin
 
-@frappe.whitelist()
-def get_picklists():
-    return picking.get_picklists()
-
-
-@frappe.whitelist()
-def get_picklist_summary(picklist_id):
-    return picking.get_picklist_summary(picklist_id)
-
-
-@frappe.whitelist()
-def submit_activity_form(**kwargs):
-    return webutils.record_event(**kwargs)
 
 
 @frappe.whitelist()
 def get_crate_quantity(crate_id):
     return utils.get_crate_quantity(crate_id)
 
-
-@frappe.whitelist()
-def get_package_ids(picklist_id):
-    return picking.get_package_ids(picklist_id)
 
 
 @frappe.whitelist()
@@ -35,7 +18,7 @@ def is_picking_complete(picklist_id):
 
 
 @frappe.whitelist()
-def mark_picking_as_complete(picklist_id, note):
+def mark_picking_as_complete(picklist_id, note=None):
     return picking.mark_as_complete(picklist_id, note)
 
 

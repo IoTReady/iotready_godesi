@@ -382,7 +382,6 @@ def customer_picking(crate: dict, activity: str):
     if not session_context:
         frappe.throw("Session not found.")
     if not "parent_crate_id" in session_context:
-        print("parent crate not scanned", session_context)
         # print(session_context)
         validations.validate_crate(crate_id)
         validations.validate_crate_in_use(crate_id)
