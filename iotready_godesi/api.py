@@ -35,7 +35,7 @@ def is_picking_complete(picklist_id):
 
 
 @frappe.whitelist()
-def mark_as_complete(picklist_id, note):
+def mark_picking_as_complete(picklist_id, note):
     return picking.mark_as_complete(picklist_id, note)
 
 

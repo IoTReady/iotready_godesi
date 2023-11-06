@@ -203,8 +203,10 @@ def get_activity_context(activity: str):
     elif activity in ["Transfer Out", "Crate Tracking Out"]:
         context["target_warehouses"] = get_target_warehouses()
         context["vehicles"] = get_vehicles()
-    # elif activity in ["Material Request"]:
-    #     context["open_material_requests"] = get_open_material_requests()
+    elif activity in ["Customer Picking"]:
+        context["picklists"] = picking.get_picklists()
+        picklist_ids = [p["name"] for p in context["picklists"]]
+        context["package_ids"] = picking.get_package_ids(picklist_ids)
     # elif activity in ["Crate Splitting"]:
     #     context["open_material_requests"] = get_partial_material_requests()
     return context
@@ -216,73 +218,6 @@ def get_session_summary(session_id: str):
     if session_context:
         activity = session_context.get("activity")
     return get_crate_list_context(session_id, activity)
-
-
-def record_event(**kwargs):
-    crate_id = kwargs.get("crate_id")
-    activity = kwargs.get("activity")
-    message = "Event not recorded."
-    success = False
-    if crate_id and activity:
-        if not frappe.db.exists("Crate", crate_id):
-            frappe.throw(f"Crate with ID {crate_id} does not exist.")
-        crate_doc = frappe.get_doc("Crate", crate_id)
-        doc = frappe.new_doc("Crate Activity")
-        doc.crate_id = crate_id
-        doc.activity = activity
-        doc.supplier_id = kwargs.get("supplier_id")
-        doc.picklist_id = kwargs.get("picklist_id")
-        doc.item_code = kwargs.get("item_code")
-        doc.stock_uom = kwargs.get("stock_uom")
-        doc.crate_weight = float(kwargs.get("weight") or 0)
-        if not kwargs.get("stock_uom"):
-            doc.stock_uom = crate_doc.stock_uom
-        if doc.stock_uom == "Kg":
-            doc.grn_quantity = doc.crate_weight
-        else:
-            doc.grn_quantity = float(kwargs.get("quantity") or 0)
-        doc.picked_weight = float(kwargs.get("picked_weight") or 0)
-        if doc.stock_uom == "Kg":
-            doc.picked_quantity = doc.picked_weight
-        else:
-            doc.picked_quantity = float(kwargs.get("picked_quantity") or 0)
-        doc.grn_quantity = crate_doc.last_known_grn_quantity - doc.picked_quantity
-        doc.crate_weight = crate_doc.last_known_weight - doc.picked_weight
-        if activity == "Picking":
-            if doc.picked_quantity == crate_doc.last_known_grn_quantity:
-                doc.package_id = crate_id
-            elif not kwargs.get("package_id"):
-                # Get package IDs from activity table
-                package_ids = picking.get_package_ids(kwargs.get("picklist_id"))
-                return {
-                    "success": False,
-                    "message": "Need package ID for partial quantities.",
-                    "missing_package_id": True,
-                    "package_ids": package_ids,
-                }
-            else:
-                doc.package_id = kwargs.get("package_id")
-                if doc.package_id == "New":
-                    package_ids = picking.get_package_ids(kwargs.get("picklist_id"))
-                    # find integer strings in package_ids
-                    package_ids = [int(x) for x in package_ids if x.isdigit()]
-                    if package_ids:
-                        doc.package_id = max(package_ids) + 1
-                    else:
-                        doc.package_id = 1
-                else:
-                    doc.package_id = int(doc.package_id)
-        doc.status = "Completed"
-        doc.save()
-        frappe.db.commit()
-        message = "Event recorded successfully."
-        success = True
-        html = frappe.render_template(
-            "templates/includes/craterow.html", {"crate": get_crate_details(crate_id)}
-        )
-    else:
-        html = "Crate ID and activity are both necessary."
-    return {"success": success, "message": message, "html": html}
 
 
 def create_crate_activity(
@@ -313,6 +248,8 @@ def create_crate_activity(
     doc.linked_reference_id = linked_reference_id
     if doc.activity in ["Delete", "Cycle Count"]:
         doc.reference_id = "DLS" + frappe.generate_hash(length=10)
+        doc.status = "Completed"
+    if doc.activity in ["Customer Picking"]:
         doc.status = "Completed"
     doc.save()
     frappe.db.commit()
@@ -431,10 +368,81 @@ def transfer_in(crate: dict, activity: str):
     }
 
 
+def customer_picking(crate: dict, activity: str):
+    """
+    Validates crate and adds to Purchase Receipt
+    """
+    crate["crate_id"] = (
+        crate["crate_id"].strip().encode("ascii", errors="ignore").decode()
+    )
+    crate_id = crate["crate_id"]
+    session_id = crate["session_id"]
+    session_context = workflows.get_activity_session(session_id)
+    # print("session_context", session_context)
+    if not session_context:
+        frappe.throw("Session not found.")
+    if not "parent_crate_id" in session_context:
+        print("parent crate not scanned", session_context)
+        # print(session_context)
+        validations.validate_crate(crate_id)
+        validations.validate_crate_in_use(crate_id)
+        source_warehouse = utils.get_user_warehouse()
+        validations.validate_source_warehouse(crate_id, source_warehouse)
+        session_context["parent_crate_id"] = crate_id
+        workflows.update_activity_session(session_id, session_context)
+        return {
+            "crate_id": crate_id,
+            "success": True,
+            "message": "Parent Crate selected",
+            "label": "",
+            "allow_final_crate": False,
+        }
+    if not crate.get("picklist_id"):
+        frappe.throw("Need picklist ID.")
+    parent_crate_id = session_context["parent_crate_id"]
+    source_warehouse = utils.get_user_warehouse()
+    validations.validate_source_warehouse(parent_crate_id, source_warehouse)
+    parent_crate = frappe.get_doc("Crate", parent_crate_id)
+    crate["stock_uom"] = parent_crate.stock_uom
+    crate["item_code"] = parent_crate.item_code
+    crate["supplier_id"] = parent_crate.supplier_id
+    if parent_crate.stock_uom == "Kg":
+        crate["quantity"] = crate["weight"]
+        crate["picked_quantity"] = crate["weight"]
+    else:
+        crate["quantity"] = float(crate.get("quantity", 0))
+        crate["picked_quantity"] = crate["quantity"]
+    if crate["picked_quantity"] == parent_crate.last_known_grn_quantity:
+        crate["package_id"] = parent_crate_id
+    elif not crate.get("package_id"):
+        frappe.throw("Need package ID for partial quantities")
+    else:
+        if crate["package_id"] == "New":
+            package_ids = picking.get_package_ids([crate["picklist_id"]])[crate["picklist_id"]]
+            package_ids = [int(x) for x in package_ids if x.isdigit()]
+            if package_ids:
+                crate["package_id"] = max(package_ids) + 1
+            else:
+                crate["package_id"] = 1
+    create_crate_activity(
+        crate=crate,
+        session_id=session_id,
+        activity=activity,
+        source_warehouse=source_warehouse,
+    )
+    return {
+        "crate_id": crate_id,
+        "success": True,
+        "message": f"Crate Added.",
+        "label": "",
+        "allow_final_crate": False,
+    }
+
 allowed_activities = {
     "Procurement": procurement,
     "Transfer Out": transfer_out,
     "Transfer In": transfer_in,
+    "Customer Picking": customer_picking,
     # "Bulk Transfer In": bulk_transfer_in,
     # "Delete": delete_crate,
     # "Cycle Count": cycle_count,
@@ -470,6 +478,14 @@ activity_requirements = {
         "hidden": False,
         "allow_multiple_api_calls": False,
         "allow_edit_quantity": False,
+    },
+    "Customer Picking": {
+        "need_weight": False,
+        "needs_submit": True,
+        "label": "Customer Picking",
+        "hidden": False,
+        "allow_multiple_api_calls": False,
+        "allow_edit_quantity": True,
     },
     # "Bulk Transfer In": {
     #     "need_weight": True,
@@ -634,7 +650,7 @@ def record_session_events(crates: list, session_id: str, metadata: str|None = ""
                 crate_out["allow_final_crate"] = True
             response["crates"].append(crate_out)
     session_context = workflows.get_activity_session(session_id)
-    if activity in ["Crate Splitting", "Material Request"]:
+    if activity in ["Customer Picking", "Crate Splitting", "Material Request"]:
         response["form"] = json.dumps({"refresh": True})
     if activity in ["Crate Splitting"]:
         response["needs_submit"] = True

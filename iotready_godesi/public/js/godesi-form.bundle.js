@@ -14,6 +14,8 @@ window.constructFormView = (context) => new Vue({
     vehicles: context.vehicles || [],
     target_warehouses: context.target_warehouses || [],
     open_material_requests: context.open_material_requests || [],
+    picklists: context.picklists || [],
+    package_ids: context.package_ids || [],
     supplier: context.supplier || "",
     item_code: context.item_code || "",
     vehicle: context.vehicle || "",

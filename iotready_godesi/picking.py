@@ -31,21 +31,24 @@ def get_picklist_summary(picklist_id):
     )
 
 
-def get_package_ids(picklist_id):
-    package_ids = ["New"] + list(
-        {
-            r.package_id
-            for r in frappe.get_all(
-                "Crate Activity",
-                filters={
-                    "activity": "Picking",
-                    "picklist_id": picklist_id,
-                },
-                fields=["package_id"],
-            )
-        }
-    )
-    return package_ids
+def get_package_ids(picklist_ids):
+    payload = {}
+    for picklist_id in picklist_ids:
+        package_ids = list(
+            {
+                r.package_id
+                for r in frappe.get_all(
+                    "Crate Activity",
+                    filters={
+                        "activity": "Customer Picking",
+                        "picklist_id": picklist_id,
+                    },
+                    fields=["package_id"],
+                )
+            }
+        )
+        payload[picklist_id] = package_ids
+    return payload
 
 
 def is_picking_complete(picklist_id):

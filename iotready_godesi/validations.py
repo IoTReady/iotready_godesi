@@ -12,6 +12,7 @@ def validate_mandatory_fields(crate, activity):
         "Crate Splitting": ["crate_id", "quantity", "weight", "parent_crate_id"],
         "Identify": ["crate_id"],
         "Delete": ["crate_id"],
+        "Customer Picking": ["crate_id", "session_id"]
     }
     for field in fields[activity]:
         assert field in crate, f"{field} missing from request"

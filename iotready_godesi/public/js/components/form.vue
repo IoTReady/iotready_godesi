@@ -34,7 +34,26 @@
         <select v-model="vehicle" id="vehicle" class="form-control" data-metadata="1" required>
           <option value="">Select Vehicle</option>
           <option v-for="o in vehicles" :key="o.license_plate" :value="o.license_plate">
-            {{ o.license_plate }} ({{o.transporter}})
+            {{ o.license_plate }} ({{ o.transporter }})
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group col mb-1" v-if="['Customer Picking'].includes(activity)">
+        <select v-model="picklist_id" id="picklist_id" class="form-control" data-metadata="1" required>
+          <option value="">Select Picklist</option>
+          <option v-for="o in picklists" :key="o.name" :value="o.name">
+            {{ o.name }}
+          </option>
+        </select>
+        <p v-if="!parent_crate_id">Please Scan Source Carton</p>
+        <p v-else>Carton: {{ parent_crate_id }}</p>
+        <select v-model="package_id" id="package_id" class="form-control" data-metadata="1" required v-if="picklist_id">
+          <option value="">Select Package</option>
+          <option value="New">New</option>
+          <option :value="parent_crate_id" v-if="parent_crate_id">{{ parent_crate_id }}</option>
+          <option v-for="o in package_ids[picklist_id]" :key="o" :value="o">
+            {{ o }}
           </option>
         </select>
       </div>
@@ -79,6 +98,8 @@ export default {
     vehicles: Array,
     open_material_requests: Array,
     target_warehouses: Array,
+    picklists: Array,
+    package_ids: Array,
     selected_supplier: String,
     selected_item_code: String,
     selected_vehicle: String,
@@ -87,6 +108,8 @@ export default {
     selected_picking_flow: String,
     selected_is_manual_picking: Boolean,
     selected_material_request: String,
+    selected_picklist_id: String,
+    selected_package_id: String,
     parent_crate_id: String,
     refresh: Function,
     updateMetadata: Function,
@@ -97,6 +120,8 @@ export default {
       item_code: "",
       vehicle: "",
       target_warehouse: "",
+      picklist_id: "",
+      package_id: "",
       need_label: 0,
       dropdown_supplier: null,
       dropdown_item: null,
@@ -156,6 +181,53 @@ export default {
         window.location.reload();
       });
     },
+    complete_picking: function () {
+      if (!this.picklist_id) {
+        return;
+      }
+      frappe.call({
+        method: "iotready_godesi.api.is_picking_complete",
+        type: "POST",
+        args: {
+          picklist_id: this.picklist_id
+        },
+        callback: (r) => {
+          if (r.exc) {
+            frappe.throw(r.exc);
+          } else {
+            if (!r.message) {
+              const note = window.prompt("Please explain why the pick list is being completed without fulfilling all items.");
+              console.log("note", note);
+              if (note) {
+                frappe.call({
+                  method: "iotready_godesi.api.mark_picking_as_complete",
+                  type: "POST",
+                  args: {
+                    picklist_id: this.picklist_id,
+                    note
+                  },
+                  callback: (r) => {
+                    if (r.exc) {
+                      frappe.throw(r.exc);
+                    } else {
+                      window.location.reload();
+                    }
+                  },
+                  freeze: true,
+                  freeze_message: "Please wait...",
+                  async: true,
+                });
+              }
+            }
+
+          }
+        },
+        freeze: true,
+        freeze_message: "Please wait...",
+        async: true,
+      });
+    },
+
     update_session_context: function (data) {
       if (!this.done_mounting) {
         return;
@@ -166,6 +238,8 @@ export default {
         vehicle: this.vehicle,
         target_warehouse: this.target_warehouse,
         need_label: this.need_label,
+        package_id: this.package_id,
+        picklist_id: this.picklist_id,
       };
       if (data) {
         for (const [key, value] of Object.entries(data)) {
@@ -249,6 +323,12 @@ export default {
     vehicle() {
       this.update_session_context();
     },
+    picklist_id() {
+      this.update_session_context();
+    },
+    package_id() {
+      this.update_session_context();
+    },
     need_label() {
       this.update_session_context();
     },
@@ -289,6 +369,8 @@ export default {
     this.item_code = this.selected_item_code;
     this.vehicle = this.selected_vehicle;
     this.target_warehouse = this.selected_target_warehouse;
+    this.picklist_id = this.selected_picklist_id;
+    this.package_id = this.selected_package_id;
     this.need_label = this.selected_need_label || 0;
     this.dropdown_item = this.items.find((item) => item.name === this.item_code);
     this.dropdown_supplier = this.suppliers.find((supplier) => supplier.name === this.supplier);
