@@ -59,7 +59,8 @@
               {{ row.quantity }}
               {{ row.stock_uom === 'Kg' ? 'KG' : (row.stock_uom === 'Nos' ? 'Pcs' : '') }}
             </td>
-            <td class="p-1 fixed-width-grn" scope="col" v-if="transferInActivities.includes(activity)">{{ row.weight }}/{{ row.expected_weight }}KG</td>
+            <td class="p-1 fixed-width-grn" scope="col" v-if="transferInActivities.includes(activity)">{{ row.weight }}/{{
+              row.expected_weight }}KG</td>
             <td class="p-1 fixed-width-grn" scope="col" v-else>{{ row.weight }}KG</td>
           </tr>
         </tbody>
@@ -71,13 +72,16 @@
           v-for="(item, index) in Object.values(crates).filter(c => c && c.modified).sort((a, b) => new Date(b.modified) - new Date(a.modified))">
           <div class="card-body small-text" v-if="item" :key="item.crate_id">
             <div class="d-flex justify-content-between align-items-baseline">
-              <h4 class="mb-0 flex-grow-1 mr-0 mt-0">{{ item.crate_id }}</h4>
-              <span v-if="item.stock_uom">{{ item.grn_quantity }}</span><span v-if="item.stock_uom === 'Kg'">&nbsp;
-                KG</span><span v-else-if="item.stock_uom === 'Nos'">&nbsp;Pcs</span><span v-else>{{item.stock_uom}}</span>
+              <h4 class="mb-0 flex-grow-1 mr-0 mt-0">{{ item.crate_id }}<span
+                  v-if="['Customer Picking'].includes(activity)"> - {{ item.package_id }}</span></h4>
+              <span v-if="item.stock_uom"><span
+                  v-if="['Customer Picking'].includes(activity)">{{ item.picked_quantity }}</span><span v-else>{{
+                    item.grn_quantity }}</span></span><span v-if="item.stock_uom === 'Kg'">&nbsp;
+                KG</span><span v-else-if="item.stock_uom === 'Nos'">&nbsp;Pcs</span><span v-else>{{ item.stock_uom }}</span>
             </div>
             <div class="d-flex justify-content-between align-items-center">
               <p class="mb-0" v-if="item.item_code && item.supplier_id">
-                {{ item.item_code}} procured at {{ item.procurement_warehouse_name }} from {{ item.supplier_id }} on
+                {{ item.item_code }} procured at {{ item.procurement_warehouse_name }} from {{ item.supplier_id }} on
                 {{
                   item.procurement_timestamp ? item.procurement_timestamp.split('.')[0] : ''
                 }}
@@ -278,6 +282,7 @@ export default {
   white-space: nowrap;
   /* Prevents text from wrapping */
 }
+
 .fixed-width-grn {
   max-width: 3ch;
   /* 3 columns */
@@ -285,5 +290,4 @@ export default {
   /* Allows text to wrap */
   word-wrap: break-word;
   /* Wraps onto next line */
-}
-</style>
+}</style>

@@ -22,7 +22,6 @@ def get_context(context):
         raise frappe.Redirect
     context.session_id = session_id
     session_context = webutils.get_session_summary(session_id)
-    print(session_context["crates"])
     # Convert datetime to string during json dump
     context.js_context = json.dumps(session_context, default=utils.date_json_serial)
 

@@ -82,6 +82,7 @@ def get_crates(session_id, activity=None, completed=False, only_ids=False):
         "Cycle Count",
         "Delete",
         "Crate Splitting",
+        "Customer Picking"
     ]:
         filters["status"] = "Completed"
 
