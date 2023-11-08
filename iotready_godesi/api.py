@@ -71,7 +71,7 @@ def get_session_context(session_id: str):
 
 # Firebase Integration
 def get_id_token():
-    id_token = frappe.request.headers.get("Authorization")
+    id_token = frappe.request.headers.get("x-authorization-token")
     if id_token:
         return id_token.split("Bearer ")[1]
     return None
