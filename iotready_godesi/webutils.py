@@ -9,11 +9,22 @@ from iotready_warehouse_traceability_frappe import utils as common_utils
 
 
 def get_suppliers():
-    return frappe.get_list("Supplier", fields=["name", "supplier_name"])
+    warehouse = utils.get_user_warehouse()
+    warehouse_doc = frappe.get_cached_doc("Warehouse", warehouse)
+    suppliers = []
+    for row in warehouse_doc.supplier_table:
+        suppliers.append({"name": row.supplier, "supplier_name": row.supplier})
+    return suppliers
 
 
 def get_items():
-    return frappe.get_list("Item", fields=["name", "item_name", "stock_uom"])
+    warehouse = utils.get_user_warehouse()
+    warehouse_doc = frappe.get_cached_doc("Warehouse", warehouse)
+    items = []
+    for row in warehouse_doc.item_table:
+        item_doc = frappe.get_cached_doc("Item", row.item_code)
+        items.append({"name": item_doc.name, "item_name": item_doc.item_name, "stock_uom": item_doc.stock_uom})
+    return items
 
 
 def get_target_warehouses():
