@@ -129,10 +129,15 @@ def get_customer_picking_activities(session_id):
     crates = {r["name"]:r for r in activities}
     return crates
 
-def get_session_item_summary(session_id):
-    sql = """
-    SELECT item_code, item_name, stock_uom, ROUND(SUM(grn_quantity),2) AS quantity, ROUND(SUM(last_known_grn_quantity),2) AS expected_quantity, ROUND(SUM(crate_weight),2) AS weight, ROUND(SUM(last_known_crate_weight),2) AS expected_weight, COUNT(*) AS `count` FROM `tabCrate Activity` WHERE session_id=%s GROUP BY item_code;
-    """
+def get_session_item_summary(session_id, activity):
+    if activity in ["Customer Picking"]:
+        sql = """
+        SELECT item_code, item_name, stock_uom, ROUND(SUM(picked_quantity),2) AS quantity, ROUND(SUM(last_known_grn_quantity),2) AS expected_quantity, ROUND(SUM(crate_weight),2) AS weight, ROUND(SUM(last_known_crate_weight),2) AS expected_weight, COUNT(*) AS `count` FROM `tabCrate Activity` WHERE session_id=%s GROUP BY item_code;
+        """
+    else:
+        sql = """
+        SELECT item_code, item_name, stock_uom, ROUND(SUM(grn_quantity),2) AS quantity, ROUND(SUM(last_known_grn_quantity),2) AS expected_quantity, ROUND(SUM(crate_weight),2) AS weight, ROUND(SUM(last_known_crate_weight),2) AS expected_weight, COUNT(*) AS `count` FROM `tabCrate Activity` WHERE session_id=%s GROUP BY item_code;
+        """
     return frappe.db.sql(sql, session_id, as_dict=True)
 
 def get_session_crate_summary(session_id, activity=None):
@@ -219,7 +224,7 @@ def get_crate_list_context(session_id, activity=None):
         "session_id": session_id,
         "activity": activity,
         "crates": crates,
-        "item_summary": get_session_item_summary(session_id),
+        "item_summary": get_session_item_summary(session_id, activity),
         "crate_summary": get_session_crate_summary(session_id, activity),
     }
     return context
@@ -692,7 +697,7 @@ def record_session_events(crates: list, session_id: str, metadata: str|None = ""
         "session_id": session_id,
         "activity": activity,
         "crates": {},
-        "item_summary": get_session_item_summary(session_id),
+        "item_summary": get_session_item_summary(session_id, activity),
         "crate_summary": get_session_crate_summary(session_id, activity),
     }
     if activity in ["Customer Picking"]:
