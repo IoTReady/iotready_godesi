@@ -113,6 +113,21 @@ def get_crates(session_id, activity=None, completed=False, only_ids=False):
         crates[crate_id] = get_crate_details(crate_id)
     return crates
 
+def get_customer_picking_activities(session_id):
+    filters = {
+        "session_id": session_id,  # This could be None, which is handled in the SQL query
+    }
+    # Using direct SQL
+    sql = """
+    SELECT *
+    FROM `tabCrate Activity`
+    WHERE status = 'Completed'
+    AND activity = 'Customer Picking'
+    AND session_id = %(session_id)s
+    """
+    activities = frappe.db.sql(sql, filters, as_dict=True)
+    crates = {r["name"]:r for r in activities}
+    return crates
 
 def get_session_item_summary(session_id):
     sql = """
@@ -423,7 +438,9 @@ def customer_picking(crate: dict, activity: str):
     else:
         crate["quantity"] = float(crate.get("quantity", 0))
         crate["picked_quantity"] = crate["quantity"]
-    if crate["picked_quantity"] == parent_crate.last_known_grn_quantity:
+    if crate["picked_quantity"] > parent_crate.last_known_grn_quantity:
+        frappe.throw("Picked quantity cannot be greater than last known quantity.")
+    elif crate["picked_quantity"] == parent_crate.last_known_grn_quantity:
         crate["package_id"] = parent_crate_id
     elif not crate.get("package_id"):
         frappe.throw("Need package ID for partial quantities")
@@ -674,25 +691,28 @@ def record_session_events(crates: list, session_id: str, metadata: str|None = ""
         "item_summary": get_session_item_summary(session_id),
         "crate_summary": get_session_crate_summary(session_id, activity),
     }
-    session_crates = get_crates(session_id, activity=activity, only_ids=True)
-    crate_count = len(session_crates)
-    if len(session_crates) > 0:
-        last_crate_id = crates[-1].get("crate_id")
-        if last_crate_id and last_crate_id in session_crates:
-            last_crate = get_crate_details(last_crate_id)
-            if all(crate_out["success"] for crate_out in response["crates"]):
-                if activity not in ["Bulk Transfer In"]:
-                    response["ble"][workflows.WEIGHT_CHAR] = [
-                        f"{last_crate.get('crate_weight', 0)}KG | {crate_count} Crates"
-                    ]
-    for crate_in in crates:
-        crate_id = crate_in.get("crate_id")
-        if crate_id and crate_id in session_crates:
-            payload["crates"][crate_id] = get_crate_details(crate_id)
-    if activity in ["Crate Splitting"] and session_context:
-        parent_crate_id = session_context.get("parent_crate_id")
-        if parent_crate_id and parent_crate_id in session_crates:
-            payload["crates"][parent_crate_id] = get_crate_details(parent_crate_id)
+    if activity in ["Customer Picking"]:
+        payload["crates"] = get_customer_picking_activities(session_id)
+    else:
+        session_crates = get_crates(session_id, activity=activity, only_ids=True)
+        crate_count = len(session_crates)
+        if len(session_crates) > 0:
+            last_crate_id = crates[-1].get("crate_id")
+            if last_crate_id and last_crate_id in session_crates:
+                last_crate = get_crate_details(last_crate_id)
+                if all(crate_out["success"] for crate_out in response["crates"]):
+                    if activity not in ["Bulk Transfer In"]:
+                        response["ble"][workflows.WEIGHT_CHAR] = [
+                            f"{last_crate.get('crate_weight', 0)}KG | {crate_count} Crates"
+                        ]
+        for crate_in in crates:
+            crate_id = crate_in.get("crate_id")
+            if crate_id and crate_id in session_crates:
+                payload["crates"][crate_id] = get_crate_details(crate_id)
+        if activity in ["Crate Splitting"] and session_context:
+            parent_crate_id = session_context.get("parent_crate_id")
+            if parent_crate_id and parent_crate_id in session_crates:
+                payload["crates"][parent_crate_id] = get_crate_details(parent_crate_id)
     response["summary"] = json.dumps(payload, default=common_utils.date_json_serial)
     if all(crate_out["success"] for crate_out in response["crates"]):
         response["ble"][workflows.LED_CHAR] = ["0,20,0"]

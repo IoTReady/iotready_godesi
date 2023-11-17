@@ -70,7 +70,7 @@
       <ul class="list-group scroller">
         <div class="card m-0"
           v-for="(item, index) in Object.values(crates).filter(c => c && c.modified).sort((a, b) => new Date(b.modified) - new Date(a.modified))">
-          <div class="card-body small-text" v-if="item" :key="item.crate_id">
+          <div class="card-body small-text" v-if="item" :key="index">
             <div class="d-flex justify-content-between align-items-baseline">
               <h4 class="mb-0 flex-grow-1 mr-0 mt-0">{{ item.crate_id }}<span
                   v-if="['Customer Picking'].includes(activity)"> - {{ item.package_id }}</span></h4>
