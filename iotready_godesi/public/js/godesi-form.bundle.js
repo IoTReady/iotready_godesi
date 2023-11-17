@@ -25,6 +25,8 @@ window.constructFormView = (context) => new Vue({
     material_request: context.material_request || "",
     parent_crate_id: context.parent_crate_id || "",
     is_manual_picking: context.is_manual_picking || false,
+    picklist_id: context.picklist_id || "",
+    package_id: context.package_id || "",
   },
   methods: {
     validate_crate: function(crate) {
