@@ -696,6 +696,5 @@ def record_session_events(crates: list, session_id: str, metadata: str|None = ""
     response["summary"] = json.dumps(payload, default=common_utils.date_json_serial)
     if all(crate_out["success"] for crate_out in response["crates"]):
         response["ble"][workflows.LED_CHAR] = ["0,20,0"]
-        response["ble"][workflows.SCAN_CHAR] = [""]
     workflows.log_ingress(crates, activity, response, creation)
     return response
