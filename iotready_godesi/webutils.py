@@ -211,7 +211,10 @@ def get_crate_list_context(session_id, activity=None):
     }
     if not session_id:
         return payload
-    crates = get_crates(session_id=session_id, activity=activity)
+    if activity in ["Customer Picking"]:
+        crates = get_customer_picking_activities(session_id)
+    else:
+        crates = get_crates(session_id=session_id, activity=activity)
     context = {
         "session_id": session_id,
         "activity": activity,

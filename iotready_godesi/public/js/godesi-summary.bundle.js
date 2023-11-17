@@ -36,7 +36,11 @@ window.constructSummaryView = (context) => new Vue({
     },
     insertCrate: function(crate) {
       // add or replace crate in crates
-      this.crates[crate.crate_id] = crate;
+      if (crate.activity === 'Customer Picking') {
+        this.crates[crate.name] = crate;
+      } else {
+        this.crates[crate.crate_id] = crate;
+      }
     },
     deleteCrate: function(crate_id) {
       // remove crate from crates
