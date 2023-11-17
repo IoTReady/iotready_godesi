@@ -704,16 +704,16 @@ def record_session_events(crates: list, session_id: str, metadata: str|None = ""
         payload["crates"] = get_customer_picking_activities(session_id)
     else:
         session_crates = get_crates(session_id, activity=activity, only_ids=True)
-        crate_count = len(session_crates)
-        if len(session_crates) > 0:
-            last_crate_id = crates[-1].get("crate_id")
-            if last_crate_id and last_crate_id in session_crates:
-                last_crate = get_crate_details(last_crate_id)
-                if all(crate_out["success"] for crate_out in response["crates"]):
-                    if activity not in ["Bulk Transfer In"]:
-                        response["ble"][workflows.WEIGHT_CHAR] = [
-                            f"{last_crate.get('crate_weight', 0)}KG | {crate_count} Crates"
-                        ]
+        # crate_count = len(session_crates)
+        # if len(session_crates) > 0:
+        #     last_crate_id = crates[-1].get("crate_id")
+        #     if last_crate_id and last_crate_id in session_crates:
+        #         last_crate = get_crate_details(last_crate_id)
+        #         if all(crate_out["success"] for crate_out in response["crates"]):
+        #             if activity not in ["Bulk Transfer In"]:
+        #                 response["ble"][workflows.WEIGHT_CHAR] = [
+        #                     f"{last_crate.get('crate_weight', 0)}KG | {crate_count} Crates"
+        #                 ]
         for crate_in in crates:
             crate_id = crate_in.get("crate_id")
             if crate_id and crate_id in session_crates:
