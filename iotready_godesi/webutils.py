@@ -438,6 +438,7 @@ def customer_picking(crate: dict, activity: str):
     else:
         crate["quantity"] = float(crate.get("quantity", 0))
         crate["picked_quantity"] = crate["quantity"]
+        crate["quantity"] = parent_crate.last_known_grn_quantity - crate["picked_quantity"]
     if crate["picked_quantity"] > parent_crate.last_known_grn_quantity:
         frappe.throw("Picked quantity cannot be greater than last known quantity.")
     elif crate["picked_quantity"] == parent_crate.last_known_grn_quantity:
