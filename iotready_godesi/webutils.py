@@ -426,6 +426,16 @@ def customer_picking(crate: dict, activity: str):
     crate["stock_uom"] = parent_crate.stock_uom
     crate["item_code"] = parent_crate.item_code
     crate["supplier_id"] = parent_crate.supplier_id
+    if crate["package_id"] == "New":
+        package_ids = picking.get_package_ids([crate["picklist_id"]])[crate["picklist_id"]]
+        package_ids = [int(x) for x in package_ids if x.isdigit()]
+        if package_ids:
+            crate["package_id"] = max(package_ids) + 1
+        else:
+            crate["package_id"] = 1
+    elif crate["package_id"] == "Whole":
+        crate["package_id"] = crate_id
+        crate["quantity"] = parent_crate.last_known_grn_quantity
     if parent_crate.stock_uom == "Kg":
         crate["quantity"] = crate["weight"]
         crate["picked_quantity"] = crate["weight"]
@@ -437,15 +447,6 @@ def customer_picking(crate: dict, activity: str):
         frappe.throw("Picked quantity cannot be greater than last known quantity.")
     # elif crate["picked_quantity"] == parent_crate.last_known_grn_quantity:
     #     crate["package_id"] = crate_id
-    if crate["package_id"] == "New":
-        package_ids = picking.get_package_ids([crate["picklist_id"]])[crate["picklist_id"]]
-        package_ids = [int(x) for x in package_ids if x.isdigit()]
-        if package_ids:
-            crate["package_id"] = max(package_ids) + 1
-        else:
-            crate["package_id"] = 1
-    elif crate["package_id"] == "Whole":
-        crate["package_id"] = crate_id
     create_crate_activity(
         crate=crate,
         session_id=session_id,
