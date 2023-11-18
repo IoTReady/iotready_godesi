@@ -416,27 +416,13 @@ def customer_picking(crate: dict, activity: str):
     # print("session_context", session_context)
     if not session_context:
         frappe.throw("Session not found.")
-    if not "parent_crate_id" in session_context:
-        # print(session_context)
-        validations.validate_crate(crate_id)
-        validations.validate_crate_in_use(crate_id)
-        source_warehouse = utils.get_user_warehouse()
-        validations.validate_source_warehouse(crate_id, source_warehouse)
-        session_context["parent_crate_id"] = crate_id
-        workflows.update_activity_session(session_id, session_context)
-        return {
-            "crate_id": crate_id,
-            "success": True,
-            "message": "Parent Crate selected",
-            "label": "",
-            "allow_final_crate": False,
-        }
     if not crate.get("picklist_id"):
         frappe.throw("Need picklist ID.")
-    parent_crate_id = session_context["parent_crate_id"]
+    if not crate.get("package_id"):
+        frappe.throw("Need package ID for partial quantities")
     source_warehouse = utils.get_user_warehouse()
-    validations.validate_source_warehouse(parent_crate_id, source_warehouse)
-    parent_crate = frappe.get_doc("Crate", parent_crate_id)
+    validations.validate_source_warehouse(crate_id, source_warehouse)
+    parent_crate = frappe.get_doc("Crate", crate_id)
     crate["stock_uom"] = parent_crate.stock_uom
     crate["item_code"] = parent_crate.item_code
     crate["supplier_id"] = parent_crate.supplier_id
@@ -449,18 +435,17 @@ def customer_picking(crate: dict, activity: str):
         crate["quantity"] = parent_crate.last_known_grn_quantity - crate["picked_quantity"]
     if crate["picked_quantity"] > parent_crate.last_known_grn_quantity:
         frappe.throw("Picked quantity cannot be greater than last known quantity.")
-    elif crate["picked_quantity"] == parent_crate.last_known_grn_quantity:
-        crate["package_id"] = parent_crate_id
-    elif not crate.get("package_id"):
-        frappe.throw("Need package ID for partial quantities")
-    else:
-        if crate["package_id"] == "New":
-            package_ids = picking.get_package_ids([crate["picklist_id"]])[crate["picklist_id"]]
-            package_ids = [int(x) for x in package_ids if x.isdigit()]
-            if package_ids:
-                crate["package_id"] = max(package_ids) + 1
-            else:
-                crate["package_id"] = 1
+    # elif crate["picked_quantity"] == parent_crate.last_known_grn_quantity:
+    #     crate["package_id"] = crate_id
+    if crate["package_id"] == "New":
+        package_ids = picking.get_package_ids([crate["picklist_id"]])[crate["picklist_id"]]
+        package_ids = [int(x) for x in package_ids if x.isdigit()]
+        if package_ids:
+            crate["package_id"] = max(package_ids) + 1
+        else:
+            crate["package_id"] = 1
+    elif crate["package_id"] == "Whole":
+        crate["package_id"] = crate_id
     create_crate_activity(
         crate=crate,
         session_id=session_id,

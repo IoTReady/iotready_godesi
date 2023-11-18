@@ -46,12 +46,10 @@
             {{ o.name }}
           </option>
         </select>
-        <p v-if="!parent_crate_id">Please Scan Source Carton</p>
-        <p v-else>Carton: {{ parent_crate_id }}</p>
         <select v-model="package_id" id="package_id" class="form-control" data-metadata="1" required v-if="picklist_id">
           <option value="">Select Package</option>
           <option value="New">New</option>
-          <option :value="parent_crate_id" v-if="parent_crate_id">{{ parent_crate_id }}</option>
+          <option value="Whole">Whole Carton</option>
           <option v-for="o in package_ids[picklist_id]" :key="o" :value="o">
             {{ o }}
           </option>
