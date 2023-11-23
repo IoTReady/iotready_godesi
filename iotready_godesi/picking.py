@@ -20,11 +20,29 @@ def get_picklists():
         "status": "Open",
         "allocated_to": frappe.session.user,
     }
-    picklists = frappe.get_all("ToDo", filters=filters, fields=["reference_name"])
-    picklists = [x["reference_name"] for x in picklists]
-    picklists = [frappe.get_doc(doctype, x) for x in picklists]
-    picklists = [x.as_dict() for x in picklists]
+    picklist_ids = [x["reference_name"] for x in frappe.get_all("ToDo", filters=filters, fields=["reference_name"])]
+    picklists = []
+    for ref in picklist_ids:
+        picklist = frappe.get_doc(doctype, ref).as_dict()
+        picklist["sales_orders"] = get_sales_docs(picklist)
+        picklists.append(picklist)
     return picklists
+def get_sales_docs(picklist):
+    sales_docs = []
+    processed_sales_orders = set()
+    locations = picklist.get('locations', [])
+    for location in locations:
+        sales_order_ref = location.get('sales_order')
+        if sales_order_ref and sales_order_ref not in processed_sales_orders:
+            sales_order = frappe.get_doc("Sales Order", sales_order_ref)
+            so_data = {"po_no": sales_order.po_no, "shipping_address_name": sales_order.shipping_address_name}
+            #sales_docs.append(sales_order.as_json())
+            sales_docs.append(so_data)
+            print(sales_order)
+            processed_sales_orders.add(sales_order_ref)
+        else:
+            print("Sales Order name is None or done. Skipping...")
+    return sales_docs
 
 
 def get_picklist_summary(picklist_id):

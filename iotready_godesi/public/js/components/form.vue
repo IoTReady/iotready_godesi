@@ -43,7 +43,8 @@
         <select v-model="picklist_id" id="picklist_id" class="form-control" data-metadata="1" required>
           <option value="">Select Picklist</option>
           <option v-for="o in picklists" :key="o.name" :value="o.name">
-            {{ o.name }}
+            {{ o.name }} | {{o.customer_name}} | 
+            {{o.sales_orders[0].po_no}} | {{o.sales_orders[0].shipping_address_name}}
           </option>
         </select>
         <select v-model="package_id" id="package_id" class="form-control" data-metadata="1" required v-if="picklist_id">
