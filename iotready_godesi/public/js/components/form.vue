@@ -22,7 +22,6 @@
           <button class="btn btn-small btn-primary" @click="generate_new_crate">Generate New Crate</button>
         </div>
       </div>
-
       <!-- Transfer Out -->
       <div class="form-group col mb-1" v-if="['Transfer Out', 'Crate Tracking Out'].includes(activity)">
         <select v-model="target_warehouse" id="target_warehouse" class="form-control" data-metadata="1" required>
@@ -55,7 +54,33 @@
             {{ o }}
           </option>
         </select>
-        <button class="btn btn-small btn-primary" @click="complete_picking" v-if="picklist_id">Complete Picking</button>
+        <div v-if="picklist_id">
+          <details>
+
+          <summary>SKU Details</summary>
+            <table class="table table-borderless small-text m-0 table-border-bottom">
+              <thead>
+                <tr>
+                  <th scope="col" class="p-1">SKU</th>
+                  <th scope="col" class="p-1">Required</th>
+                  <th scope="col" class="p-1">Picked</th>
+                </tr>
+              </thead>
+              <tbody>
+                    <tr v-for="selected_picklist in getSelectedPicklists()" :key="selected_picklist.name"> 
+                      <td class="p-1">{{ selected_picklist.item_name }}</td>
+                      <td class="p-1">{{ selected_picklist.stock_qty }} PCS</td>
+                      <td class="p-1">{{ selected_picklist.picked_qty }} PCS</td>
+                    </tr>
+              </tbody>
+            </table>  
+ 
+          </details>
+          <button class="btn btn-small btn-primary" @click="complete_picking">Complete Picking</button>
+
+        </div>
+        
+  
       </div>
 
       <!-- Transfer In -->
@@ -180,6 +205,11 @@ export default {
         console.error(e);
         window.location.reload();
       });
+    },
+    getSelectedPicklists() {
+      // Filter and return the selected picklists based on picklist_id
+      const selectedPicklist = this.picklists.find(p => p.name === this.picklist_id);
+      return selectedPicklist ? selectedPicklist.locations : [];
     },
     complete_picking: function () {
       if (!this.picklist_id) {
@@ -380,6 +410,9 @@ export default {
 </script>
 
 <style scoped>
+.small-text {
+  font-size: 0.75rem !important;
+}
 .form-group {
   padding: 0 !important;
   /* Or whatever value you prefer */
@@ -434,7 +467,9 @@ export default {
   width: 0;
   height: 0;
 }
-
+.table-border-bottom {
+  border-bottom: 1px solid #dee2e6;
+}
 .slider {
   position: absolute;
   cursor: pointer;

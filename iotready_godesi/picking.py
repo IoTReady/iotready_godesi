@@ -26,7 +26,7 @@ def get_picklists():
         picklist = frappe.get_doc(doctype, ref).as_dict()
         picklist["sales_orders"] = get_sales_docs(picklist)
         picklists.append(picklist)
-    return picklists
+    return picklists    
 def get_sales_docs(picklist):
     sales_docs = []
     processed_sales_orders = set()
