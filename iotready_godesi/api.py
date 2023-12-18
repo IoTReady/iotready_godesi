@@ -83,16 +83,18 @@ def get_user_from_id_token():
 
 
 @frappe.whitelist(allow_guest=True)
-def login_with_firebase_token():
-    id_token = get_id_token()
-    if not id_token:
-        return None
+def login_with_firebase_token(token):
+    if not token:
+        frappe.throw(frappe._("Unauthorized"), frappe.AuthenticationError)
 
-    return admin.log_into_frappe_with_id_token(id_token)
+    username = admin.log_into_frappe_with_id_token(token)
+    if not username or username == 'Guest':
+        frappe.throw(frappe._("Unauthorized"), frappe.AuthenticationError)
+    return username
 
 
 @frappe.whitelist(allow_guest=True)
-def get_configuration_with_firebase_token():
-    login_with_firebase_token()
+def get_configuration_with_firebase_token(token):
+    login_with_firebase_token(token)
     return get_configuration()
 
