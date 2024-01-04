@@ -55,7 +55,7 @@
           </option>
         </select>
         <div v-if="picklist_id">
-          <details>
+          <details open>
 
           <summary>SKU Details</summary>
             <table class="table table-borderless small-text m-0 table-border-bottom">
