@@ -485,6 +485,8 @@ activity_requirements = {
         "hidden": False,
         "allow_multiple_api_calls": True,
         "allow_edit_quantity": True,
+        "is_bulk": False,
+        "do_identify":False 
     },
     "Transfer Out": {
         "need_weight": False,
@@ -493,6 +495,8 @@ activity_requirements = {
         "hidden": False,
         "allow_multiple_api_calls": False,
         "allow_edit_quantity": False,
+        "is_bulk": False,
+        "do_identify":False
     },
     "Transfer In": {
         "need_weight": False,
@@ -501,6 +505,8 @@ activity_requirements = {
         "hidden": False,
         "allow_multiple_api_calls": False,
         "allow_edit_quantity": False,
+        "is_bulk": False,
+        "do_identify":False
     },
     "Customer Picking": {
         "need_weight": False,
@@ -509,6 +515,8 @@ activity_requirements = {
         "hidden": False,
         "allow_multiple_api_calls": False,
         "allow_edit_quantity": True,
+        "is_bulk": False,
+        "do_identify":True
     },
     # "Bulk Transfer In": {
     #     "need_weight": True,
