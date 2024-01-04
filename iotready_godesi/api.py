@@ -65,8 +65,9 @@ def update_activity_session(session_id: str, context: str):
 
 
 @frappe.whitelist(allow_guest=False)
-def get_session_context(session_id: str):
-    return workflows.get_activity_session(session_id)
+def get_session_context(activity: str):
+    print("session context is called ")
+    return webutils.get_activity_context(activity)
 
 
 # Firebase Integration
