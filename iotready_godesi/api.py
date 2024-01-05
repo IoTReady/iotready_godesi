@@ -51,6 +51,12 @@ def generate_new_crate():
     """
     return common_utils.new_crate()
 
+@frappe.whitelist(allow_guest=False)
+def identify_crate(crate_id : str):
+    """
+    Called by app user to identify a crate.
+    """
+    return webutils.identify_crate(crate_id)
 
 @frappe.whitelist(allow_guest=False)
 def get_new_activity_session(activity: str):
@@ -66,7 +72,6 @@ def update_activity_session(session_id: str, context: str):
 
 @frappe.whitelist(allow_guest=False)
 def get_session_context(activity: str):
-    print("session context is called ")
     return webutils.get_activity_context(activity)
 
 
