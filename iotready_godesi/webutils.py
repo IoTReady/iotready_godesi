@@ -556,7 +556,7 @@ activity_requirements = {
     #     "label": "Identify",
     #     "hidden": False,
     #     "allow_multiple_api_calls": False,
-        # "allow_edit_quantity": False,
+    #     "allow_edit_quantity": False,
     # },
     # "Release": {
     #     "need_weight": False,
@@ -619,6 +619,15 @@ def get_configuration():
         "activity_requirements": activity_requirements,
     }
     return payload
+
+def identify_crate(crate_id: str):
+    crate_details = get_crate_details(crate_id)
+    response={
+        "crate_id": crate_id,
+        "item_code": crate_details['item_code'],
+        "quantity": crate_details['last_known_grn_quantity']
+    }
+    return response
 
 def record_session_events(crates: list, session_id: str, metadata: str|None = ""):
     
