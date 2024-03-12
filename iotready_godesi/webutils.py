@@ -485,6 +485,8 @@ activity_requirements = {
         "hidden": False,
         "allow_multiple_api_calls": True,
         "allow_edit_quantity": True,
+        "is_bulk": False,
+        "do_identify":False 
     },
     "Transfer Out": {
         "need_weight": False,
@@ -493,6 +495,8 @@ activity_requirements = {
         "hidden": False,
         "allow_multiple_api_calls": False,
         "allow_edit_quantity": False,
+        "is_bulk": False,
+        "do_identify":False
     },
     "Transfer In": {
         "need_weight": False,
@@ -501,6 +505,8 @@ activity_requirements = {
         "hidden": False,
         "allow_multiple_api_calls": False,
         "allow_edit_quantity": False,
+        "is_bulk": False,
+        "do_identify":False
     },
     "Customer Picking": {
         "need_weight": False,
@@ -509,6 +515,8 @@ activity_requirements = {
         "hidden": False,
         "allow_multiple_api_calls": False,
         "allow_edit_quantity": True,
+        "is_bulk": False,
+        "do_identify":True
     },
     # "Bulk Transfer In": {
     #     "need_weight": True,
@@ -548,7 +556,7 @@ activity_requirements = {
     #     "label": "Identify",
     #     "hidden": False,
     #     "allow_multiple_api_calls": False,
-        # "allow_edit_quantity": False,
+    #     "allow_edit_quantity": False,
     # },
     # "Release": {
     #     "need_weight": False,
@@ -611,6 +619,15 @@ def get_configuration():
         "activity_requirements": activity_requirements,
     }
     return payload
+
+def identify_crate(crate_id: str):
+    crate_details = get_crate_details(crate_id)
+    response={
+        "crate_id": crate_id,
+        "item_code": crate_details['item_code'],
+        "quantity": crate_details['last_known_grn_quantity']
+    }
+    return response
 
 def record_session_events(crates: list, session_id: str, metadata: str|None = ""):
     

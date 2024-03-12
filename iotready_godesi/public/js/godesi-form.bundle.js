@@ -58,7 +58,7 @@ window.constructFormView = (context) => new Vue({
       frappe.call({
         method: "iotready_godesi.api.get_session_context",
         args: {
-          session_id: context.session_id,
+          activity: context.activity,
         },
         callback: (r) => {
           // console.log(r);
