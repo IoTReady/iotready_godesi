@@ -110,7 +110,7 @@ def maybe_create_delivery_note(picklist_id):
     dn = frappe.get_all("Delivery Note", filters={"pick_list": picklist_id})
     if not dn:
         doc = create_delivery_note(picklist_id)
-        frappe.db.commit()
+        # frappe.db.commit()
         if doc:
             return doc.name
         else:

@@ -287,7 +287,7 @@ def create_crate_activity(
     if doc.activity in ["Customer Picking"]:
         doc.status = "Completed"
     doc.save()
-    frappe.db.commit()
+    # frappe.db.commit()
     return doc
 
 

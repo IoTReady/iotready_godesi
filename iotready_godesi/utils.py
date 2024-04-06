@@ -13,7 +13,7 @@ def maybe_create_batch(batch_id, warehouse_id):
         doc.manufacturing_date = datetime.now().date()
         doc.warehouse = warehouse_id
         doc.save()
-        frappe.db.commit()
+        # frappe.db.commit()
 
 
 @frappe.whitelist()
