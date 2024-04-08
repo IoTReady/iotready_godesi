@@ -42,8 +42,8 @@
         <select v-model="picklist_id" id="picklist_id" class="form-control" data-metadata="1" required>
           <option value="">Select Picklist</option>
           <option v-for="o in picklists" :key="o.name" :value="o.name">
-            {{ o.name }} | {{o.customer_name}} | 
-            {{o.sales_orders[0].po_no}} | {{o.sales_orders[0].shipping_address_name}}
+            {{ o.name }} | {{ o.customer_name }} |
+            {{ o.sales_orders[0].po_no }} | {{ o.sales_orders[0].shipping_address_name }}
           </option>
         </select>
         <select v-model="package_id" id="package_id" class="form-control" data-metadata="1" required v-if="picklist_id">
@@ -57,7 +57,7 @@
         <div v-if="picklist_id">
           <details open>
 
-          <summary>SKU Details</summary>
+            <summary>SKU Details</summary>
             <table class="table table-borderless small-text m-0 table-border-bottom">
               <thead>
                 <tr>
@@ -67,20 +67,20 @@
                 </tr>
               </thead>
               <tbody>
-                    <tr v-for="selected_picklist in getSelectedPicklists()" :key="selected_picklist.name"> 
-                      <td class="p-1">{{ selected_picklist.item_name }}</td>
-                      <td class="p-1">{{ selected_picklist.stock_qty }} PCS</td>
-                      <td class="p-1">{{ selected_picklist.picked_qty }} PCS</td>
-                    </tr>
+                <tr v-for="selected_picklist in getSelectedPicklists()" :key="selected_picklist.name">
+                  <td class="p-1">{{ selected_picklist.item_name }}</td>
+                  <td class="p-1">{{ selected_picklist.stock_qty }} PCS</td>
+                  <td class="p-1">{{ selected_picklist.picked_qty }} PCS</td>
+                </tr>
               </tbody>
-            </table>  
- 
+            </table>
+
           </details>
           <button class="btn btn-small btn-primary" @click="complete_picking">Complete Picking</button>
 
         </div>
-        
-  
+
+
       </div>
 
       <!-- Transfer In -->
@@ -195,6 +195,7 @@ export default {
             console.log(r.message.message);
             if (window.AndroidBridge) {
               AndroidBridge.setCrateId(r.message.message);
+              AndroidBridge.writeToDataLogger("d3edcb21-d7aa-4731-bad8-946651538512", `0,${r.message.message}`);
             }
           }
         },
@@ -413,6 +414,7 @@ export default {
 .small-text {
   font-size: 0.75rem !important;
 }
+
 .form-group {
   padding: 0 !important;
   /* Or whatever value you prefer */
@@ -467,9 +469,11 @@ export default {
   width: 0;
   height: 0;
 }
+
 .table-border-bottom {
   border-bottom: 1px solid #dee2e6;
 }
+
 .slider {
   position: absolute;
   cursor: pointer;
