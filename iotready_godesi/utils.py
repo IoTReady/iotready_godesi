@@ -1,6 +1,7 @@
 import frappe
-from datetime import datetime
-
+import json
+from datetime import datetime 
+from iotready_godesi import validations
 
 @frappe.whitelist()
 def maybe_create_batch(batch_id, warehouse_id):
@@ -14,6 +15,58 @@ def maybe_create_batch(batch_id, warehouse_id):
         doc.warehouse = warehouse_id
         doc.save()
         # frappe.db.commit()
+
+@frappe.whitelist()
+def delete_crate(crate: dict, activity: str):
+    """
+    Deletes crates from draft purchase receipts
+    """
+    # print("delete_crate", crate, activity)
+    if isinstance(crate, str):
+        crate = json.loads(crate)
+    crate["crate_id"] = (
+        crate["crate_id"].strip().encode("ascii", errors="ignore").decode()
+    )
+    crate_id = crate["crate_id"]
+    validations.validate_crate(crate_id)
+    source_warehouse = get_user_warehouse()
+    validations.validate_source_warehouse(crate_id, source_warehouse)
+    activity_filter = crate.get("current_activity")
+    # Until the APK is updated, identify current_activity by looking for other keys
+    if not activity_filter:
+        if crate.get("target_warehouse"):
+            activity_filter = "Transfer Out"
+        elif crate.get("supplier"):
+            activity_filter = "Procurement"
+        else:
+            activity_filter = "Transfer In"
+    delete_draft_crate_activities(crate_id, activity_filter)
+    return {
+        "success": True,
+        "message": "Crate deleted.",
+    }
+
+@frappe.whitelist()
+def delete_draft_crate_activities(crate_id, activity_filter=None):
+    try:
+        filters = {
+            "crate_id": crate_id,
+            "status": "Draft",
+        }
+        if activity_filter:
+            filters["activity"] = activity_filter
+        # We use get_all here to ignore get_list permissions and cause an exception
+        # if a draft crate activity exists for this crate in another warehouse
+        last = frappe.db.get_all(
+            "Crate Activity", filters=filters, fields=["name", "activity"]
+        )
+        if len(last) > 0:
+            for ref in last:
+                frappe.delete_doc_if_exists("Crate Activity", ref["name"])
+            frappe.db.commit()
+            return f"Deleted {last[0]['activity']} for {crate_id}."
+    except Exception as e:
+        print(str(e))
 
 
 @frappe.whitelist()
