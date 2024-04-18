@@ -31,6 +31,11 @@ def get_configuration():
 
 
 @frappe.whitelist(allow_guest=False)
+def get_session_summary(session_id: str):
+    return webutils.get_session_summary(session_id)
+
+
+@frappe.whitelist(allow_guest=False)
 def record_events(crate: dict, activity: str):
     """
     Called by app user to upload crate events.
