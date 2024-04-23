@@ -195,7 +195,7 @@ export default {
             console.log(r.message.message);
             if (window.AndroidBridge) {
               AndroidBridge.setCrateId(r.message.message);
-              AndroidBridge.writeToDataLogger("d3edcb21-d7aa-4731-bad8-946651538512", `0,${r.message.message}`);
+              AndroidBridge.writeToDataLogger("d3edcb21-d7aa-4731-bad8-946651538501", r.message.message);
             }
           }
         },
